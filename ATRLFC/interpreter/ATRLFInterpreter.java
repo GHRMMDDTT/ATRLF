@@ -4,6 +4,9 @@ import ATRLFC.tokenizer.ATRLFScanner;
 import ATRLFC.tokenizer.ATRLFToken;
 import ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType;
 
+import java.util.Arrays;
+import java.util.HashMap;
+
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
 
 public class ATRLFInterpreter {
@@ -19,10 +22,18 @@ public class ATRLFInterpreter {
 
 	public static final ATRLFToken TOKEN_NOT_FOUND = new ATRLFToken("\0", NotFoundToken, -1, -1);
 
+	public final HashMap<String, String[]> Functions = new HashMap<>();
+
 	public ATRLFInterpreter(ATRLFScanner scanner) { this.scanner = scanner; }
 
 	public String onInterpreter() {
-		return functionValidationCode()[1];
+		StringBuilder builderLexer = new StringBuilder();
+
+		while (validate(CURRENT).type() != EndOfInputFile) {
+			builderLexer.append(functionValidationCode()[1]);
+		}
+
+		return builderLexer.toString();
 	}
 
 	private String[] functionValidationCode() {
@@ -38,6 +49,16 @@ public class ATRLFInterpreter {
 		StringBuilder parameters = new StringBuilder();
 
 		validate(CURRENT | NEXT | CONSUME, ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
+
+		if (validate(CURRENT | SEEK, IdentifierToken) != TOKEN_NOT_FOUND) {
+			parameters.append(parameters());
+
+			while (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+				validate(CURRENT | NEXT);
+				parameters.append(parameters());
+			}
+		}
+
 		validate(CURRENT | NEXT | CONSUME, ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
 		validate(CURRENT | NEXT | CONSUME, ColonSymbolDelimiterOperatorToken);
 
@@ -50,6 +71,7 @@ public class ATRLFInterpreter {
 				String[] code = alternativesValidationCode();
 				header = code[0];
 				sb.append(code[1]);
+				Functions.put(name.value(), code);
 			}
 		}
 		validate(CURRENT | NEXT | CONSUME, CurlyRightSymbolDelimiterSeparatorOperatorToken);
@@ -60,10 +82,10 @@ public class ATRLFInterpreter {
 			ATRLFToken tokenName = validate(CURRENT | NEXT | CONSUME, IdentifierToken);
 
 
-			sb.insert(0, "public " + (type.value().equals("Unit") ? "Token " : type.value()) + name.value() + '(' + parameters + ") {\n");
+			sb.insert(0, "public " + (type.value().equals("Unit") ? "Token " : type.value()) + name.value() + "(int startPos, " + (parameters.isEmpty() ? "" : ", " + parameters) + ") {\n");
 			sb.append("\nreturn new Token(new String(this.buffer, startPos, this.position - startPos), MyTokens.").append(tokenName.value()).append(");");
 		} else {
-			sb.insert(0, "public void " + name.value() + '(' + parameters + ") {\n");
+			sb.insert(0, "public void " + name.value() + "(int startPos" + (parameters.isEmpty() ? "" : ", " + parameters) + ") {\n");
 		}
 		sb.append("\n}\n");
 
@@ -110,11 +132,11 @@ public class ATRLFInterpreter {
 		while (validate(CURRENT | SEEK, VerticalLineSymbolOperatorToken).type() != VerticalLineSymbolOperatorToken && validate(CURRENT | SEEK, ParenthesisRightSymbolDelimiterSeparatorOperatorToken).type() != ParenthesisRightSymbolDelimiterSeparatorOperatorToken && validate(CURRENT).type() != EndOfInputFile && validate(CURRENT).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken) {
 			String code;
 			if (value == null) {
-				String[] args = characterValidationCode();
+				String[] args = regexValidationCode();
 				value = args[0];
 				code = args[1];
 			} else {
-				code = characterValidationCode()[1];
+				code = regexValidationCode()[1];
 			}
 			sb.append(code);
 		}
@@ -122,9 +144,17 @@ public class ATRLFInterpreter {
 		return new String[] { value, sb.toString() };
 	}
 
-	private String[] characterValidationCode() {
-		ATRLFToken character = validate(CURRENT | CONSUME | NEXT, CharacterLiteralToken, ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken);
-		if (character.type() == ParenthesisLeftSymbolDelimiterSeparatorOperatorToken) {
+	private String[] regexValidationCode() {
+		ATRLFToken character = validate(CURRENT | CONSUME | NEXT, CharacterLiteralToken, ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken, IdentifierToken);
+		return switch (character.type()) {
+			case ParenthesisLeftSymbolDelimiterSeparatorOperatorToken -> regexParenthesisValidationCode();
+			case SquareLeftSymbolDelimiterSeparatorOperatorToken -> regexRangeValidationCode();
+			case IdentifierToken -> regexFunctionValidationCode(character);
+			case null, default -> regexCharacterValidationCode(character);
+		};
+	}
+
+		public String[] regexParenthesisValidationCode() {
 			String[] str = alternativesValidationCode();
 			validate(CURRENT | CONSUME | NEXT, ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
 			switch (validate(CURRENT | SEEK | NEXT, PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, NotSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken).type()) {
@@ -153,6 +183,10 @@ public class ATRLFInterpreter {
 							if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
 								validate(CURRENT | NEXT);
 							}
+						} else if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+							validate(CURRENT | NEXT);
+							sb.append("i").append(counter).append(" == ").append(t1.value());
+							sb.append(" || ");
 						} else {
 							sb.append("i").append(counter).append(" == ").append(t1.value());
 							sb.append(" || ");
@@ -166,7 +200,9 @@ public class ATRLFInterpreter {
 					return new String[] { str[0], str[1] };
 				}
 			}
-		} else if (character.type() == SquareLeftSymbolDelimiterSeparatorOperatorToken) {
+		}
+
+		public String[] regexRangeValidationCode() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("if (");
 			while (validate(CURRENT).type() != SquareRightSymbolDelimiterSeparatorOperatorToken) {
@@ -180,6 +216,10 @@ public class ATRLFInterpreter {
 					if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
 						validate(CURRENT | NEXT);
 					}
+				} else if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+					validate(CURRENT | NEXT);
+					sb.append("peek() == ").append(t1.value());
+					sb.append(" || ");
 				} else {
 					sb.append("peek() == ").append(t1.value());
 					sb.append(" || ");
@@ -240,46 +280,57 @@ public class ATRLFInterpreter {
 				}
 			}
 		}
-		switch (validate(CURRENT | SEEK | NEXT, PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, NotSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken).type()) {
-			case PlusSymbolArithmeticalOperatorToken -> {
-				return new String[] { character.value(), "do { accept(" + character.value() + "); } while (has(" + character.value() + "));\n" };
-			}
-			case NotSymbolOperatorToken -> {
-				return new String[] { character.value(), "if (!has(" + character.value() + ")) { consume(); } else { error(" + character.value() + "); }\n" };
-			}
-			case QuestionSymbolOperatorToken -> {
-				if (validate(CURRENT | SEEK | NEXT, PlusSymbolArithmeticalOperatorToken) != TOKEN_NOT_FOUND) {
-					return new String[] { character.value(), "while (has(" + character.value() + ")) { consume(); }\n" };
-				}
-				return new String[] { character.value(), "if (has(" + character.value() + ")) { consume(); }\n" };
-			}
-			case CurlyLeftSymbolDelimiterSeparatorOperatorToken -> {
-				StringBuilder sb = new StringBuilder();
-				while (validate(CURRENT).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken) {
-					ATRLFToken t1 = validate(CURRENT | CONSUME | NEXT, IntegerLiteralToken);
-					if (validate(CURRENT | SEEK, MinusSymbolArithmeticalOperatorToken) != TOKEN_NOT_FOUND) {
-						validate(CURRENT | NEXT);
-						ATRLFToken t2 = validate(CURRENT | CONSUME | NEXT, IntegerLiteralToken);
-						sb.append("(i").append(counter).append(" >= ").append(t1.value()).append(" && i").append(counter).append(" <= ").append(t2.value()).append(")");
-						sb.append(" || ");
 
-						if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
-							validate(CURRENT | NEXT);
-						}
-					} else {
-						sb.append("i").append(counter).append(" == ").append(t1.value());
-						sb.append(" || ");
-					}
+		public String[] regexFunctionValidationCode(ATRLFToken name) {
+			if (!Functions.containsKey(name.value())) throw new RuntimeException("No function found");
+			String[] arg = Functions.get(name.value());
+			return new String[] { arg[0], name.value() + "(this.position);\n" };
+		}
+
+		public String[] regexCharacterValidationCode(ATRLFToken character) {
+			switch (validate(CURRENT | SEEK | NEXT, PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, NotSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken).type()) {
+				case PlusSymbolArithmeticalOperatorToken -> {
+					return new String[] { character.value(), "do { accept(" + character.value() + "); } while (has(" + character.value() + "));\n" };
 				}
-				sb.setLength(sb.length() - 4);
-				validate(CURRENT | NEXT);
-				return new String[] { character.value(), "{ int i" + counter + " = 0; while(has(" + character.value() +")) { consume(); i" + counter + "++; } if (!(" + sb + ")) { error(" + character.value() + "); } }\n" };
-			}
-			default -> {
-				return new String[] { character.value(), "accept(" + character.value() + ");\n" };
+				case NotSymbolOperatorToken -> {
+					return new String[] { character.value(), "if (!has(" + character.value() + ")) { consume(); } else { error(" + character.value() + "); }\n" };
+				}
+				case QuestionSymbolOperatorToken -> {
+					if (validate(CURRENT | SEEK | NEXT, PlusSymbolArithmeticalOperatorToken) != TOKEN_NOT_FOUND) {
+						return new String[] { character.value(), "while (has(" + character.value() + ")) { consume(); }\n" };
+					}
+					return new String[] { character.value(), "if (has(" + character.value() + ")) { consume(); }\n" };
+				}
+				case CurlyLeftSymbolDelimiterSeparatorOperatorToken -> {
+					StringBuilder sb = new StringBuilder();
+					while (validate(CURRENT).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken) {
+						ATRLFToken t1 = validate(CURRENT | CONSUME | NEXT, IntegerLiteralToken);
+						if (validate(CURRENT | SEEK, MinusSymbolArithmeticalOperatorToken) != TOKEN_NOT_FOUND) {
+							validate(CURRENT | NEXT);
+							ATRLFToken t2 = validate(CURRENT | CONSUME | NEXT, IntegerLiteralToken);
+							sb.append("(i").append(counter).append(" >= ").append(t1.value()).append(" && i").append(counter).append(" <= ").append(t2.value()).append(")");
+							sb.append(" || ");
+
+							if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+								validate(CURRENT | NEXT);
+							}
+						} else if (validate(CURRENT | SEEK, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+							sb.append("i").append(counter).append(" == ").append(t1.value());
+							sb.append(" || ");
+						} else {
+							sb.append("i").append(counter).append(" == ").append(t1.value());
+							sb.append(" || ");
+						}
+					}
+					sb.setLength(sb.length() - 4);
+					validate(CURRENT | NEXT);
+					return new String[] { character.value(), "{ int i" + counter + " = 0; while(has(" + character.value() +")) { consume(); i" + counter + "++; } if (!(" + sb + ")) { error(" + character.value() + "); } }\n" };
+				}
+				default -> {
+					return new String[] { character.value(), "accept(" + character.value() + ");\n" };
+				}
 			}
 		}
-	}
 
 	public ATRLFToken validate(int mask, ATRLFTokenType... types) {
 		boolean isCurrent = (mask & CURRENT) != 0;

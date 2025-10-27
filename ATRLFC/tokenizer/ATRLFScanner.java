@@ -16,7 +16,7 @@ public class ATRLFScanner {
 
 	private final char[] target;
 
-	private int position, line, column;
+	private int position, line = 1, column;
 
 	public ATRLFScanner(char[] target) { this.target = target; }
 

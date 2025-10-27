@@ -1,3 +1,9 @@
+function Lexer:identifier(
+	text: String
+): Unit = {
+	['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_','$']?+
+};
+
 function Lexer:hexadecimal(): Unit = {
-'0' ('x' ['0'-'9','a'-'f','A'-'F']{2-6} | 'b' ['0'-'1']+ | 'o' ['0'-'7']+ )
+	'0' | ['1'-'9'] | identifier
 };
