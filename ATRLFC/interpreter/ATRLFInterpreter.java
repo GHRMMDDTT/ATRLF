@@ -4,7 +4,6 @@ import ATRLFC.tokenizer.ATRLFScanner;
 import ATRLFC.tokenizer.ATRLFToken;
 import ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
@@ -82,12 +81,12 @@ public class ATRLFInterpreter {
 			ATRLFToken tokenName = validate(CURRENT | NEXT | CONSUME, IdentifierToken);
 
 
-			sb.insert(0, "public " + (type.value().equals("Unit") ? "Token " : type.value()) + name.value() + "(int startPos, " + (parameters.isEmpty() ? "" : ", " + parameters) + ") {\n");
-			sb.append("\nreturn new Token(new String(this.buffer, startPos, this.position - startPos), MyTokens.").append(tokenName.value()).append(");");
+			sb.insert(0, "public " + (type.value().equals("Unit") ? "Token " : type.value()) + name.value() + "(int startPos" + (parameters.isEmpty() ? "" : ", " + parameters) + ") {\n");
+			sb.append("this.token = new Token(new String(this.buffer, startPos, this.position - startPos), MyTokens.").append(tokenName.value()).append(");");
 		} else {
 			sb.insert(0, "public void " + name.value() + "(int startPos" + (parameters.isEmpty() ? "" : ", " + parameters) + ") {\n");
 		}
-		sb.append("\n}\n");
+		sb.append("\n}\n\n");
 
 		validate(CURRENT | NEXT | CONSUME, SemicolonSymbolDelimiterOperatorToken);
 
@@ -237,7 +236,7 @@ public class ATRLFInterpreter {
 				}
 				case NotSymbolOperatorToken -> {
 					sb.insert(4, "!").insert(condition.length() + 4 + 1, ")");
-					sb.append(" consume() } else { error(); }\n");
+					sb.append(" consume(); } else { error(); }\n");
 					return new String[] { condition, sb.toString() };
 				}
 				case QuestionSymbolOperatorToken -> {
@@ -282,9 +281,30 @@ public class ATRLFInterpreter {
 		}
 
 		public String[] regexFunctionValidationCode(ATRLFToken name) {
-			if (!Functions.containsKey(name.value())) throw new RuntimeException("No function found");
+			if (!Functions.containsKey(name.value())) throw new RuntimeException("No function found of: " + name.value());
 			String[] arg = Functions.get(name.value());
-			return new String[] { arg[0], name.value() + "(this.position);\n" };
+
+			StringBuilder sb = new StringBuilder();
+
+			sb.append(name.value()).append("(this.position");
+
+			validate(CURRENT | NEXT | CONSUME, ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
+
+			ATRLFToken value;
+			if ((value = validate(CURRENT | SEEK | NEXT, StringLiteralToken, CharacterLiteralToken)) != TOKEN_NOT_FOUND) {
+				sb.append(", ").append(value.value());
+
+				while (validate(CURRENT | SEEK | NEXT, CommaSymbolDelimiterOperatorToken) != TOKEN_NOT_FOUND) {
+					value = validate(CURRENT | SEEK | NEXT, StringLiteralToken, CharacterLiteralToken);
+					sb.append(", ").append(value.value());
+				}
+			}
+
+			validate(CURRENT | NEXT | CONSUME, ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
+
+			sb.append(");\n");
+
+			return new String[] { "\b\b\b\b" + arg[0].substring(0, arg[0].length() - 1), sb.toString() };
 		}
 
 		public String[] regexCharacterValidationCode(ATRLFToken character) {

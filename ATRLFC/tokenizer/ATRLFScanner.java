@@ -27,7 +27,6 @@ public class ATRLFScanner {
 		this.symbols['@'] = true;
 		this.symbols['_'] = true;
 		this.symbols['~'] = true;
-		this.symbols['"'] = true;
 
 		// Symbols Operators;
 		this.symbols['='] = true;
@@ -203,6 +202,82 @@ public class ATRLFScanner {
 		}
 	}
 
+	private ATRLFToken getStringLiteral(int startPos) {
+		boolean isEnded = true;
+		boolean isBlockString;
+		this.position++;
+
+		if (this.target[this.position] == '"' && this.target[this.position + 1] == '"') {
+			this.position++;
+			this.position++;
+			isBlockString = true;
+		} else {
+			isBlockString = false;
+		}
+
+		while (this.position < this.target.length) {
+			if (!isBlockString && this.target[this.position] == '\n') {
+				isEnded = false;
+				break;
+			} else if (this.target[this.position] == '"') {
+				if (isBlockString && this.target[this.position + 1] == '"' && this.target[this.position + 2] == '"') {
+					this.position++;
+					this.position++;
+					this.position++;
+					break;
+				} else if (isBlockString) {
+					this.position++;
+				} else {
+					break;
+				}
+			}
+
+			if (this.target[this.position] == '\\') {
+				boolean isValidHexadecimal = false;
+				this.position++;
+
+				if (this.position < this.target.length && (((this.target[this.position] >= 'a' && this.target[this.position] <= 'f') || (this.target[this.position] >= 'A' && this.target[this.position] <= 'F') || (this.target[this.position] >= '0' && this.target[this.position] <= '9')) || this.target[this.position] == 'r' || this.target[this.position] == 't' || this.target[this.position] == 'f' || this.target[this.position] == 'n' || this.target[this.position] == '\\' || this.target[this.position] == '\'' || this.target[this.position] == '\"')) {
+					this.position++;
+					isValidHexadecimal = true;
+				} else if (this.target[this.position] == 'u') {
+					this.position++;
+					if ((this.target[this.position] >= 'a' && this.target[this.position] <= 'f') || (this.target[this.position] >= 'A' && this.target[this.position] <= 'F') || (this.target[this.position] >= '0' && this.target[this.position] <= '9')) {
+						this.position++;
+						isValidHexadecimal = true;
+					}
+					if ((this.target[this.position] >= 'a' && this.target[this.position] <= 'f') || (this.target[this.position] >= 'A' && this.target[this.position] <= 'F') || (this.target[this.position] >= '0' && this.target[this.position] <= '9')) {
+						this.position++;
+						isValidHexadecimal = true;
+					}
+					if ((this.target[this.position] >= 'a' && this.target[this.position] <= 'f') || (this.target[this.position] >= 'A' && this.target[this.position] <= 'F') || (this.target[this.position] >= '0' && this.target[this.position] <= '9')) {
+						this.position++;
+						isValidHexadecimal = true;
+					}
+					if ((this.target[this.position] >= 'a' && this.target[this.position] <= 'f') || (this.target[this.position] >= 'A' && this.target[this.position] <= 'F') || (this.target[this.position] >= '0' && this.target[this.position] <= '9')) {
+						this.position++;
+						isValidHexadecimal = true;
+					}
+				}
+
+				if (!isValidHexadecimal) {
+					throw new RuntimeException("El escapable hexadecimal es incorrecto del de caracter: " + new String(this.target, startPos, this.position - startPos));
+				}
+
+			} else {
+				this.position++;
+			}
+		}
+
+		if (!isEnded) {
+			throw new RuntimeException("Falta en el final el '\"' para dar por terminado el literal caracter en la linea: " + this.line);
+		}
+
+		this.position++;
+
+
+		return new ATRLFToken(new String(this.target, startPos, this.position - startPos), StringLiteralToken, this.line, this.position - this.column);
+	}
+
 	private ATRLFToken getNumericLiteral(int startPos) {
 		do {
 			this.position++;
@@ -292,6 +367,11 @@ public class ATRLFScanner {
 
 		if (this.target[this.position] == '\'') {
 			this.tokens = this.getCharacterLiteral(this.position);
+			return this.tokens;
+		}
+
+		if (this.target[this.position] == '"') {
+			this.tokens = this.getStringLiteral(this.position);
 			return this.tokens;
 		}
 
