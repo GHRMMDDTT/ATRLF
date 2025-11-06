@@ -1,15 +1,1 @@
-function Lexer:identifier(): Unit = {
-	['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_','$']?+
-} => IdentifierToken;
-
-function Lexer:numeric(): Unit = {
-	['1'-'9'] ['0'-'9']?+
-} => IdentifierToken;
-
-function Lexer:whitespace(): Unit = {
-	(' ' | '\t' | '\n')+
-};
-
-function Lexer:main(): Unit = {
-	identifier() | numeric() | whitespace()
-};
+['.','A'-'Z','0','1','a'-'z','2']+
