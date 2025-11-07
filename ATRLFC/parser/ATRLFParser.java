@@ -13,10 +13,8 @@ import java.util.stream.Collectors;
 
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
 
-public class ATRLFParser {
-	private final static ATRLFToken NOT_FOUND_TOKEN = new ATRLFToken("\0", ATRLFTokenType.NotFoundToken, -1, -1);
-
-	private final ATRLFScanner scanner;
+public record ATRLFParser(ATRLFScanner scanner) {
+	private final static ATRLFToken NOT_FOUND_TOKEN = new ATRLFToken("\0", NotFoundToken, -1, -1);
 
 	public enum Flag {
 		CURRENT,
@@ -35,10 +33,6 @@ public class ATRLFParser {
 		TypeError(String text) { this.text = text; }
 	}
 
-	public ATRLFParser(ATRLFScanner scanner) {
-		this.scanner = scanner;
-	}
-
 	public ATRLFTree onParser() {
 		return this.onParserAlternatives();
 	}
@@ -47,7 +41,7 @@ public class ATRLFParser {
 		ArrayList<ATRLFStatementTree> expressionTrees = new ArrayList<>();
 		expressionTrees.add(this.onParserSequence());
 
-		while (validate(EnumSet.of(Flag.CURRENT)).type() == VerticalLineSymbolOperatorToken)  {
+		while (validate(EnumSet.of(Flag.CURRENT)).type() == VerticalLineSymbolOperatorToken) {
 			validate(EnumSet.of(Flag.CURRENT, Flag.NEXT));
 			expressionTrees.add(this.onParserSequence());
 		}
@@ -72,19 +66,47 @@ public class ATRLFParser {
 
 	private ATRLFExpressionTree onParserUnary() {
 		ATRLFExpressionTree right = this.onParserGroup();
-		ATRLFToken expresion = validate(EnumSet.of(Flag.CURRENT, Flag.NEXT, Flag.SEEK), PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken);
+		ATRLFToken expresion = validate(EnumSet.of(Flag.CURRENT, Flag.NEXT, Flag.SEEK), PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken);
 
 		if (expresion != NOT_FOUND_TOKEN) {
 			ATRLFToken subExpresion;
 
 			if (expresion.type() == QuestionSymbolOperatorToken && (subExpresion = validate(EnumSet.of(Flag.CURRENT, Flag.NEXT, Flag.SEEK), PlusSymbolArithmeticalOperatorToken)) != NOT_FOUND_TOKEN) {
-				right = new ATRLFUnaryExpressionTree(subExpresion, right);
+				right = new ATRLFUnaryExpressionTree(new ATRLFUnaryExpressionTree.ATRLFUnarySingleOperatorExpresionTree(subExpresion), right);
 			}
 		}
 
-		right = new ATRLFUnaryExpressionTree(expresion, right);
+		if (expresion.type() == SquareLeftSymbolDelimiterSeparatorOperatorToken) {
+			right = new ATRLFUnaryExpressionTree(new ATRLFUnaryExpressionTree.ATRLFUnaryMultipleOperatorExpresionTree(this.onParserRangeIndex()), right);
+
+			validate(EnumSet.of(Flag.CURRENT, Flag.CONSUME, Flag.NEXT), CurlyRightSymbolDelimiterSeparatorOperatorToken);
+		} else {
+			right = new ATRLFUnaryExpressionTree(new ATRLFUnaryExpressionTree.ATRLFUnarySingleOperatorExpresionTree(expresion), right);
+		}
 
 		return right;
+	}
+
+	private ArrayList<ArrayList<ATRLFToken>> onParserRangeIndex() {
+		ArrayList<ArrayList<ATRLFToken>> expression = new ArrayList<>();
+
+		while (validate(EnumSet.of(Flag.CURRENT, Flag.SEEK)).type() != SquareRightSymbolDelimiterSeparatorOperatorToken) {
+			ArrayList<ATRLFToken> subExpresion = new ArrayList<>();
+			subExpresion.add(validate(EnumSet.of(Flag.CURRENT, Flag.NEXT, Flag.CONSUME), IntegerLiteralToken));
+
+			if (validate(EnumSet.of(Flag.CURRENT, Flag.SEEK)).type() == MinusSymbolArithmeticalOperatorToken) {
+				validate(EnumSet.of(Flag.CURRENT, Flag.NEXT));
+				subExpresion.add(validate(EnumSet.of(Flag.CURRENT, Flag.NEXT, Flag.CONSUME), IntegerLiteralToken));
+			}
+
+			expression.add(subExpresion);
+
+			if (validate(EnumSet.of(Flag.CURRENT, Flag.SEEK)).type() == CommaSymbolDelimiterOperatorToken) {
+				validate(EnumSet.of(Flag.CURRENT, Flag.NEXT));
+			}
+		}
+
+		return expression;
 	}
 
 	private ATRLFExpressionTree onParserGroup() {
@@ -221,38 +243,37 @@ public class ATRLFParser {
 	public static final String positionInt = "private int position;";
 
 	public static final String peekCode = """
-private char peek() {
-    if (this.position >= this.target.length) return '\\0';
-    return this.target[this.position];
-}
-        """;
+			private char peek() {
+			if (this.position >= this.target.length) return '\\0';
+			return this.target[this.position];
+			}
+			""";
 
 	public static final String has$argument_char$Code = """
-private final boolean has(char target) {
-    return this.peek() == target || this.peek() != '\\0';
-}
-        """;
+			private final boolean has(char target) {
+			return this.peek() == target || this.peek() != '\\0';
+			}
+			""";
 
 	public static final String consumeCode = """
-private final void consume() {
-    this.position++;
-}
-        """;
+			private final void consume() {
+			this.position++;
+			}
+			""";
 
 	public static final String accept$argument_char$Code = """
-private final void accept(char target) {
-    if (this.has(target)) {
-        this.consume();
-        return;
-    }
-    this.error(target);
-}
-        """;
+			private final void accept(char target) {
+			if (this.has(target)) {
+			this.consume();
+			} else {
+			this.error(target);
+			}
+			}
+			""";
 
 	public static final String errorCode = """
-private final char error() {
-    if (this.peek() == '\\0') return '\\0';
-    throw new RuntimeException("No match in: " + this.peek());
-}
-        """;
+			private final void error() {
+			throw new RuntimeException("No match in: " + this.peek());
+			}
+			""";
 }

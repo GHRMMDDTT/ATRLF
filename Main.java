@@ -10,7 +10,7 @@ private final static String FILE_EXTENSION_PARSER = ".pic";
 private final static String FILE_EXTENSION_INTERPRETER = ".iic";
 private final static String FILE_EXTENSION_TREE = ".tic";
 
-private final char[] target = "0x007".toCharArray();
+private final char[] target = "tmp".toCharArray();
 private int position;
 
 void main() {
@@ -18,13 +18,6 @@ void main() {
 	ATRLFParser parser = new ATRLFParser(scanner);
 	ATRLFTree tree = parser.onParser();
 	System.out.println(tree.onVisitor());
-
-	compile();
-}
-
-private final void compile() {
-	System.out.println("Starting!");
-
 }
 
 private char peek() {
@@ -48,7 +41,6 @@ private final void accept(char target) {
 	this.error();
 }
 
-private final char error() {
-	if (this.peek() == '\0') return '\0';
+private final void error() {
 	throw new RuntimeException("No match in: " + this.peek() + " at " + this.position + ':' + 0);
 }

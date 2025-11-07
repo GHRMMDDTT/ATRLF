@@ -21,20 +21,16 @@ public final class ATRLFRangeCharacterExpressionTree extends ATRLFExpressionTree
 					String accept;
 
 					if (subExpresion.size() == 2) {
-						String start = subExpresion.get(0).toString();
-						String end = subExpresion.get(1).toString();
-						condition = String.format("(has(%s) || has(%s))", start, end);
-						accept = "this.consume();";
+						condition = String.format("(this.peek() >= %s && this.peek() <= %s)", subExpresion.getFirst().toString(), subExpresion.getLast().toString());
 					} else {
-						String c = subExpresion.get(0).toString();
-						condition = String.format("has(%s)", c);
-						accept = String.format("this.accept(%s);", c);
+						condition = String.format("this.has(%s)", subExpresion.getFirst().toString());
 					}
+					accept = "this.consume();";
 
 					if (i == 0) {
-						return "if " + condition + " {\n" + accept + "\n}";
+						return "if (" + condition + ") {\n" + accept + "\n}";
 					} else {
-						return "else if " + condition + " {\n" + accept + "\n}";
+						return "else if (" + condition + ") {\n" + accept + "\n}";
 					}
 				})
 				.collect(Collectors.joining(" "))

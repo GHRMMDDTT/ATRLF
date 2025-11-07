@@ -1,1 +1,64 @@
-['.','A'-'Z','0','1','a'-'z','2']+
+((
+	['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_','$']+
+) | (
+	['1'-'9']['0'-'9']?+ ('.' ['0'-'9']+)?
+))+
+
+
+
+
+
+
+/* Output:
+do {
+	if ((this.peek() >= 'a' && this.peek() <= 'z') || (this.peek() >= 'A' && this.peek() <= 'Z')) {
+		if ((this.peek() >= 'a' && this.peek() <= 'z')) {
+			this.consume();
+		} else if ((this.peek() >= 'A' && this.peek() <= 'Z')) {
+			this.consume();
+		} else {
+			this.error();
+		}
+		do {
+			if ((this.peek() >= 'a' && this.peek() <= 'z')) {
+				this.consume();
+			} else if ((this.peek() >= 'A' && this.peek() <= 'Z')) {
+				this.consume();
+			} else if ((this.peek() >= '0' && this.peek() <= '9')) {
+				this.consume();
+			} else if (this.has('_')) {
+				this.consume();
+			} else if (this.has('$')) {
+				this.consume();
+			} else {
+				this.error();
+			}
+		} while ((this.peek() >= 'a' && this.peek() <= 'z') || (this.peek() >= 'A' && this.peek() <= 'Z') || (this.peek() >= '0' && this.peek() <= '9') || has('_') || has('$'));
+	} else if ((this.peek() >= '1' && this.peek() <= '9')) {
+		if ((this.peek() >= '1' && this.peek() <= '9')) {
+			this.consume();
+		} else {
+			this.error();
+		}
+		while ((this.peek() >= '0' && this.peek() <= '9')) {
+			if ((this.peek() >= '0' && this.peek() <= '9')) {
+				this.consume();
+			} else {
+				this.error();
+			}
+		}
+		if (this.has('.')) {
+			this.accept('.');
+			do {
+				if ((this.peek() >= '0' && this.peek() <= '9')) {
+					this.consume();
+				} else {
+					this.error();
+				}
+			} while ((this.peek() >= '0' && this.peek() <= '9'));
+		}
+	} else {
+		this.error();
+	}
+} while ((this.peek() >= 'a' && this.peek() <= 'z') || (this.peek() >= 'A' && this.peek() <= 'Z') || (this.peek() >= '1' && this.peek() <= '9'));
+*/
