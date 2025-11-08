@@ -14,6 +14,7 @@ public class Token {
 		NumericLiteralToken,
 		CompactNumericLiteralToken,
 		CharacterLiteralToken,
+		OperatorSyntaxToken,
 		BadToken;
 	}
 }

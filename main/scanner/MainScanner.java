@@ -50,6 +50,8 @@ public class MainScanner {
 			return numeric();
 		} else if (this.has('\'')) {
 			return character();
+		} else if (this.has('=') || this.has('<') || this.has('>')) {
+			return operator();
 		}
 		return new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken);
 	}
@@ -179,6 +181,30 @@ public class MainScanner {
 		}
 		this.accept('\'');
 		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.CharacterLiteralToken);
+	}
+
+	public Token operator() {
+		int oldPosition = this.position;
+		if (this.has('=')) {
+			this.accept('=');
+			if (this.has('=') || this.has('>') || this.has('<')) {
+				if (this.has('=')) {
+					this.accept('=');
+				} else if (this.has('>')) {
+					this.accept('>');
+				} else if (this.has('<')) {
+					this.accept('<');
+				}
+			}
+		} else if (this.has('<')) {
+			this.accept('<');
+		} else if (this.has('>')) {
+			this.accept('>');
+			if (this.has('=')) {
+				this.accept('=');
+			}
+		}
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.OperatorSyntaxToken);
 	}
 
 	private char peek() {

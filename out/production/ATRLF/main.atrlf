@@ -1,5 +1,5 @@
 function Lexer:main(): = {
-    whitespace() (identifier() | numeric() | character())
+    whitespace() (identifier() | numeric() | character() | operator())
 };
 
 function Lexer:identifier(): = {
@@ -21,3 +21,7 @@ function Lexer:whitespace(): = {
 function Lexer:character(): = {
     '\'' ('\\' ('r' | 't' | 'f' | 'n' | 'b' | '\\' | '\'') | 'a') '\''
 } => CharacterLiteralToken;
+
+function Lexer:operator(): = {
+    '=' ('=' | '>' | '<')? | '<' | '>' ('=')?
+} => OperatorSyntaxToken;
