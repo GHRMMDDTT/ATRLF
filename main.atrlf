@@ -4,10 +4,7 @@ function Lexer:main(): = {
 
 function Lexer:identifier(): = {
     ['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_']?+
-} => switch(it) {
-	case "if" -> IfTokenKeyword;
-	default -> IdentifierToken;
-};
+} => IdentifierToken;
 
 function Lexer:numeric(): = {
     compactNumeric() | ['1'-'9']['0'-'9']?+
