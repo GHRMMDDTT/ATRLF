@@ -80,7 +80,9 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), SemicolonSymbolDelimiterOperatorToken);
 
-		return new ATRLFFunctionLexerTree(name, parametersLexerTrees, expressionLexerTree, token);
+		ATRLFFunctionLexerTree functionLexerTree = new ATRLFFunctionLexerTree(name, parametersLexerTrees, expressionLexerTree, token);
+		functionLexerTree.compilationUnit = compilationUnitLexerTree;
+		return functionLexerTree;
 	}
 
 		private ArrayList<ATRLFFunctionParametersLexerTree> onFunctionParamereters() {
@@ -205,7 +207,9 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			validate(EnumSet.of(CURRENT, NEXT));
 			validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
 			validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
-			return new ATRLFFunctionCalledLexerTree(expresion, null);
+			ATRLFFunctionCalledLexerTree calledLexerTree = new ATRLFFunctionCalledLexerTree(expresion, null);
+			calledLexerTree.compilationUnit = compilationUnitLexerTree;
+			return calledLexerTree;
 		}
 
 		return this.onParserCharacter(compilationUnitLexerTree);
@@ -317,42 +321,4 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 				.map(Enum::name)
 				.collect(Collectors.joining(" | "));
 	}
-
-	public static final String targetArrayCharacter = "private final char[] target;";
-	public static final String positionInt = "private int position;";
-
-	public static final String peekCode = """
-private char peek() {
-if (this.position >= this.target.length) return '\\0';
-return this.target[this.position];
-}
-""";
-
-	public static final String has$argument_char$Code = """
-private final boolean has(char target) {
-return this.peek() == target || this.peek() != '\\0';
-}
-""";
-
-	public static final String consumeCode = """
-private final void consume() {
-this.position++;
-}
-""";
-
-	public static final String accept$argument_char$Code = """
-private final void accept(char target) {
-if (this.has(target)) {
-this.consume();
-} else {
-this.error(target);
-}
-}
-""";
-
-	public static final String errorCode = """
-private final void error() {
-throw new RuntimeException("No match in: " + this.peek());
-}
-""";
 }

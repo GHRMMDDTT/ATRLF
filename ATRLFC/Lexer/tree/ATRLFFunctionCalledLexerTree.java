@@ -19,11 +19,11 @@ public final class ATRLFFunctionCalledLexerTree extends ATRLFExpressionLexerTree
 	public String onVisitor() {
 		StringBuilder sb = new StringBuilder();
 		String name = this.name.value();
-		name = name.equals("main") ? "getNextToken" : name;
+		name = this.name.value().equals("main") ? "getNextToken" : name;
+		if (compilationUnit.functions.get(this.name.value()).token != null) {
+			sb.append("return ");
+		}
 		sb.append(name).append('(');
-		/*sb.append(this.parameters.stream().map((tokens) -> {
-			return tokens.value();
-		}).collect(Collectors.joining(", ")));*/
 		sb.append(')').append(';');
 		return sb.toString();
 	}
@@ -39,3 +39,7 @@ public final class ATRLFFunctionCalledLexerTree extends ATRLFExpressionLexerTree
 		}
 	}
 }
+
+		/*sb.append(this.parameters.stream().map((tokens) -> {
+			return tokens.value();
+		}).collect(Collectors.joining(", ")));*/

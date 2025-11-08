@@ -1,6 +1,26 @@
-function Lexer:identifier(): = {
-    letter() (letter() | digit())?+
-} => IdentifierTokenSyntax;
+function Lexer:main(): = {
+    whitespace() (identifier() | numeric() | character())
+};
 
-function Lexer:letter(): = { ['a'-'z','A'-'Z'] };
-function Lexer:digit(): = { ['0'-'9'] };
+function Lexer:identifier(): = {
+    ['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_']?+
+} => switch(it) {
+	case "if" -> IfTokenKeyword;
+	default -> IdentifierToken;
+};
+
+function Lexer:numeric(): = {
+    compactNumeric() | ['1'-'9']['0'-'9']?+
+} => NumericLiteralToken;
+
+function Lexer:compactNumeric(): = {
+    '0' ('x' ['a'-'f','A'-'F','0'-'9']+ | 'b' ['0'-'1']+ | 'o' ['0'-'7']+)
+} => CompactNumericLiteralToken;
+
+function Lexer:whitespace(): = {
+    (' ' | '\t' | '\r' | '\n')?+
+};
+
+function Lexer:character(): = {
+    '\'' ('\\' ('r' | 't' | 'f' | 'n' | 'b' | '\\' | '\'') | 'a') '\''
+} => CharacterLiteralToken;

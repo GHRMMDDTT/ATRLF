@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	public ArrayList<ATRLFFunctionLexerTree> parameters;
 	public HashMap<String, ATRLFFunctionLexerTree> functions = new HashMap<>();
+	public final ArrayList<ATRLFToken> tokens = new ArrayList<>();
 
 	public ATRLFCompilationUnitLexerTree() { }
 

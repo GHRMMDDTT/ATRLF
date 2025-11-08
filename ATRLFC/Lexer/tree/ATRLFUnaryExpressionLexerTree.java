@@ -12,6 +12,7 @@ import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.PlusSymbolArithmeticalO
 public final class ATRLFUnaryExpressionLexerTree extends ATRLFExpressionLexerTree {
 	public final TypeUnaryOperatorExpresionTree operator;
 	public final ATRLFExpressionLexerTree expresion;
+	private boolean containsToken = false;
 
 	private static int indexOfCount = 0;
 
