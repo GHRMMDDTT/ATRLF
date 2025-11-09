@@ -1,10 +1,11 @@
 package ATRLFC.Lexer.tree;
 
-import ATRLFC.tokenizer.ATRLFToken;
-
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
+import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.AllToken;
+import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.NotToken;
 
 public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLexerTree {
 	public final ArrayList<ATRLFStatementLexerTree> expressionTrees;
@@ -21,61 +22,32 @@ public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLex
 		} else {
 			for (ATRLFStatementLexerTree expressionTree : this.expressionTrees) {
 				ATRLFSequenceStatementLexerTree sequenceExpressionTree = (ATRLFSequenceStatementLexerTree) expressionTree;
+				AtomicBoolean isNewLine = new AtomicBoolean(false);
 				sb.append("if (").append(
-						getCharacterExpressionTree(sequenceExpressionTree).stream().map(subExpresion -> {
-									String condition;
+						getCharacterExpressionTree(sequenceExpressionTree, false).stream().map(subExpresion -> {
+									String condition = "";
 
 									if (subExpresion.size() == 2) {
-										condition = String.format("(this.peek() >= %s && this.peek() <= %s)", subExpresion.getFirst().value(), subExpresion.getLast().value());
+										if (subExpresion.getFirst().type() == NotToken) condition = "!(";
+										condition += String.format("(this.peek() >= %s && this.peek() <= %s)", subExpresion.getFirst().value(), subExpresion.getLast().value());
+										if (subExpresion.getFirst().type() == NotToken) condition += ")";
 									} else {
-										condition = String.format("this.has(%s)", subExpresion.getFirst().value());
+										if (subExpresion.getFirst().type() == AllToken) {
+											condition = "true";
+										} else {
+											if (subExpresion.getFirst().type() == NotToken) condition = "!";
+											condition += String.format("this.has(%s)", subExpresion.getFirst().value());
+											isNewLine.set(subExpresion.getFirst().value().equals("'\\n'"));
+										}
 									}
 
 									return condition;
 								})
 								.collect(Collectors.joining(" || "))
-				).append(") {\n").append(sequenceExpressionTree.onVisitor()).append("\n} else ");
+				).append(") {\n").append(isNewLine.get() ? "this.line++;\nthis.column = this.position;\n" : "").append(sequenceExpressionTree.onVisitor()).append("\n} else ");
 			}
-			sb.setLength(sb.length() - 6);
+			sb.append("{\nthis.error();\n}");
 		}
 		return sb.toString();
-	}
-
-	private ArrayList<ArrayList<ATRLFToken>> getCharacterExpressionTree(ATRLFExpressionLexerTree expressionTree) {
-		ArrayList<ArrayList<ATRLFToken>> tokens = new ArrayList<>();
-		if (expressionTree instanceof ATRLFUnaryExpressionLexerTree unaryExpressionTree) {
-			tokens.addAll(getCharacterExpressionTree(unaryExpressionTree.expresion));
-		} else if (expressionTree instanceof ATRLFGroupExpressionLexerTree groupExpressionTree3) {
-			tokens.addAll(getCharacterExpressionTree(groupExpressionTree3.expresion));
-		} else if (expressionTree instanceof ATRLFCharacterExpressionLexerTree characterExpressionTree) {
-			tokens.add(new ArrayList<>(List.of(characterExpressionTree.character)));
-		} else if (expressionTree instanceof ATRLFAlternativesStatementLexerTree alternativesStatementTree) {
-			for (ATRLFExpressionLexerTree expressionTree1 : alternativesStatementTree.expressionTrees) {
-				tokens.addAll(getCharacterExpressionTree(expressionTree1));
-			}
-		} else if (expressionTree instanceof ATRLFSequenceStatementLexerTree sequenceStatementTree) {
-			tokens.addAll(getCharacterExpressionTree(sequenceStatementTree.expressionTrees.getFirst()));
-		} else if (expressionTree instanceof ATRLFRangeCharacterExpressionLexerTree characterExpressionTree) {
-			tokens.addAll(new ArrayList<>(
-					characterExpressionTree.expression.stream().map(atrlfExpressionTrees -> {
-						ArrayList<ATRLFExpressionLexerTree> subExpresion = atrlfExpressionTrees;
-						ArrayList<ATRLFToken> tokens1 = new ArrayList<>();
-
-						if (subExpresion.size() == 2) {
-							tokens1.add(((ATRLFCharacterExpressionLexerTree) subExpresion.getFirst()).character);
-							tokens1.add(((ATRLFCharacterExpressionLexerTree) subExpresion.getLast()).character);
-						} else {
-							tokens1.add(((ATRLFCharacterExpressionLexerTree) subExpresion.getFirst()).character);
-						}
-
-						return tokens1;
-					}).collect(Collectors.toList())
-			));
-		} else if (expressionTree instanceof ATRLFFunctionLexerTree functionLexerTree) {
-			tokens.addAll(getCharacterExpressionTree(functionLexerTree.lexerExpressions));
-		} else if (expressionTree instanceof ATRLFFunctionCalledLexerTree functionCalledLexerTree) {
-			tokens.addAll(getCharacterExpressionTree(compilationUnit.functions.get(functionCalledLexerTree.name.value())));
-		}
-		return tokens;
 	}
 }

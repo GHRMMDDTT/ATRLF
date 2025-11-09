@@ -27,8 +27,11 @@ public class ClassLexerBuilder {
 			carpeta.mkdirs();
 		}
 
+		String name = Character.toUpperCase(this.name.charAt(this.name.lastIndexOf('/') + 1)) + this.name.substring(this.name.lastIndexOf('/') + 1 + 1);
+		String packager = this.name.substring(this.name.lastIndexOf('/') + 1);
+
 		String code;
-		code = "package " + this.name + ".scanner;\n";
+		code = "package " + packager + ".scanner;\n";
 		code += """
 
 import java.io.File;
@@ -41,24 +44,25 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 """;
-		code += "public class " + Character.toUpperCase(this.name.charAt(0)) + this.name.substring(1) + "Scanner {\n\t" + targetArrayCharacter + "\n\t" + positionInt + "\n\n";
-		code += "public "  + Character.toUpperCase(this.name.charAt(0)) + this.name.substring(1) + "Scanner(char[] target) {\nthis.target = target;\n}\n\n";
-		code += "public "  + Character.toUpperCase(this.name.charAt(0)) + this.name.substring(1) + "Scanner(String target) {\nthis.target = target.toCharArray();\n}\n\n";
-		code += "public "  + Character.toUpperCase(this.name.charAt(0)) + this.name.substring(1) + "Scanner(File target) {\nthis.target = this.readFile(target);\n}\n\n";
+		code += "public class " + name + "Scanner {\n\t" + targetArrayCharacter + "\n\t" + positionInt + "\n\n" + "\t" + lineInt + "\n\t" + columnInt + "\n\n";
+		code += "public "  + name + "Scanner(char[] target) {\nthis.target = target;\n}\n\n";
+		code += "public "  + name + "Scanner(String target) {\nthis.target = target.toCharArray();\n}\n\n";
+		code += "public "  + name + "Scanner(File target) {\nthis.target = this.readFile(target);\n}\n\n";
 		code += readFile$argument_File$Code + "\n";
 		code += this.tree.onVisitor() + "\n\n";
 		code += peekCode + "\n";
+		code += seekCode$argument_int$Code + "\n";
 		code += has$argument_char$Code + "\n";
 		code += consumeCode + "\n";
 		code += accept$argument_char$Code + "\n";
 		code += errorCode + "}";
 		code = applyIndentation(code);
 		try {
-			Files.writeString(Path.of(ruteDir + Character.toUpperCase(this.name.charAt(0)) + this.name.substring(1) + "Scanner.java"), code);
+			Files.writeString(Path.of(ruteDir + name  + "Scanner.java"), code);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		code = "package " + this.name + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken;\n}\n}";
+		code = "package " + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken;\n}\n}";
 		code = applyIndentation(code);
 		try {
 			Files.writeString(Path.of(ruteDir + "Token.java"), code);
@@ -97,11 +101,19 @@ import java.nio.charset.StandardCharsets;
 
 	public static final String targetArrayCharacter = "private final char[] target;";
 	public static final String positionInt = "private int position;";
+	public static final String columnInt = "private int column;";
+	public static final String lineInt = "private int line;";
 
 	public static final String peekCode = """
 private char peek() {
-if (this.position >= this.target.length) return '\\0';
-return this.target[this.position];
+return seek(0);
+}
+""";
+
+	public static final String seekCode$argument_int$Code = """
+private char seek(int of) {
+if (this.position + of >= this.target.length) return '\\0';
+return this.target[this.position + of];
 }
 """;
 
@@ -155,10 +167,14 @@ return new char[0];
 public class Token {
 private final String value;
 private final TokenSyntax type;
+private final int column;
+private final int line;
 
-public Token(String value, TokenSyntax type) {
+public Token(String value, TokenSyntax type, int column, int line) {
 this.value = value;
 this.type = type;
+this.column = column;
+this.line = line;
 }
 
 public enum TokenSyntax {

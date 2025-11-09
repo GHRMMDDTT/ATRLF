@@ -7,10 +7,10 @@ import java.io.File;
 
 public class Main {
 	public static void main(String... args) {
-		ATRLFScanner scanner = new ATRLFScanner(new File("main.atrlf"));
+		ATRLFScanner scanner = new ATRLFScanner(new File(args[0]));
 		ATRLFLexerParser parser = new ATRLFLexerParser(scanner);
 		ATRLFLexerTree tree = parser.onParser();
-		ClassLexerBuilder builder = new ClassLexerBuilder(tree, "main");
+		ClassLexerBuilder builder = new ClassLexerBuilder(tree, args[0].substring(0, args[0].lastIndexOf('.')));
 		builder.onBuilder();
 	}
 }

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ATRLFC">
+    <output-path>$PROJECT_DIR$/out/artifacts/ATRLFC</output-path>
+    <root id="archive" name="ATRLFC.jar">
+      <element id="module-output" name="ATRLF" />
+    </root>
+  </artifact>
+</component>

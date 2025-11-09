@@ -140,18 +140,35 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 
 	private ATRLFExpressionLexerTree onParserUnary(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
 		ATRLFExpressionLexerTree right = this.onParserGroup(compilationUnitLexerTree);
-		ATRLFToken expresion = validate(EnumSet.of(CURRENT, NEXT, SEEK), PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken);
+		ATRLFToken expresion = validate(EnumSet.of(CURRENT, NEXT, SEEK), PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken, NotSymbolOperatorToken);
 
-		if (expresion != NOT_FOUND_TOKEN) {
+		if (expresion.type() == QuestionSymbolOperatorToken) {
 			ATRLFToken subExpresion;
 
-			if (expresion.type() == QuestionSymbolOperatorToken && (subExpresion = validate(EnumSet.of(CURRENT, NEXT, SEEK), PlusSymbolArithmeticalOperatorToken)) != NOT_FOUND_TOKEN) {
+			if ((subExpresion = validate(EnumSet.of(CURRENT, NEXT, SEEK), PlusSymbolArithmeticalOperatorToken)) != NOT_FOUND_TOKEN) {
 				right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(subExpresion), right);
 				right.compilationUnit = compilationUnitLexerTree;
 			}
-		}
+			right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(expresion), right);
+		} else if (expresion.type() == NotSymbolOperatorToken) {
+			ATRLFToken subExpresion = validate(EnumSet.of(CURRENT, NEXT, SEEK), PlusSymbolArithmeticalOperatorToken, QuestionSymbolOperatorToken, CurlyLeftSymbolDelimiterSeparatorOperatorToken);
 
-		if (expresion.type() == CurlyLeftSymbolDelimiterSeparatorOperatorToken) {
+			if (subExpresion.type() == QuestionSymbolOperatorToken) {
+				ATRLFToken subSubExpresion;
+
+				if ((subSubExpresion = validate(EnumSet.of(CURRENT, SEEK))).type() == PlusSymbolArithmeticalOperatorToken) {
+					validate(EnumSet.of(CURRENT, NEXT));
+
+					right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(subSubExpresion), right);
+					right.compilationUnit = compilationUnitLexerTree;
+				}
+
+				right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(subExpresion), right);
+			} else if (subExpresion.type() != NotFoundToken) {
+				right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(subExpresion), right);
+			}
+			right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(expresion), right);
+		} else if (expresion.type() == CurlyLeftSymbolDelimiterSeparatorOperatorToken) {
 			right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnaryMultipleOperatorExpresionTree(this.onParserRangeIndex()), right);
 
 			validate(EnumSet.of(CURRENT, CONSUME, NEXT), CurlyRightSymbolDelimiterSeparatorOperatorToken);
@@ -186,7 +203,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 	}
 
 	private ATRLFExpressionLexerTree onParserGroup(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
-		ATRLFToken expresion = validate(EnumSet.of(CURRENT, SEEK), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken, CharacterLiteralToken, IdentifierToken);
+		ATRLFToken expresion = validate(EnumSet.of(CURRENT, SEEK), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken, CharacterLiteralToken, IdentifierToken, StartSymbolArithmeticalOperatorToken);
 
 		if (expresion.type() == ParenthesisLeftSymbolDelimiterSeparatorOperatorToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
@@ -210,6 +227,9 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			ATRLFFunctionCalledLexerTree calledLexerTree = new ATRLFFunctionCalledLexerTree(expresion, null);
 			calledLexerTree.compilationUnit = compilationUnitLexerTree;
 			return calledLexerTree;
+		} else if (expresion.type() == StartSymbolArithmeticalOperatorToken) {
+			validate(EnumSet.of(CURRENT, NEXT));
+			return new ATRLFAnyExpressionLexerTree(expresion);
 		}
 
 		return this.onParserCharacter(compilationUnitLexerTree);

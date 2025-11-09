@@ -27,10 +27,17 @@ public final class ATRLFFunctionLexerTree extends ATRLFExpressionLexerTree {
 		StringBuilder sb = new StringBuilder();
 		String name = this.name.value();
 		name = name.equals("main") ? "getNextToken" : name;
-		sb.append("public " + (token == null && !name.equals("getNextToken")? "void" : "Token") + " ").append(name).append('(');
+		sb.append("public void").append(" ").append(name).append('(');
 		sb.append(this.parameters.stream().map((tokens) -> tokens.type.value() + ' ' + tokens.name.value()).collect(Collectors.joining(", "))).append(')').append(" {\nint oldPosition = this.position;\n");
 		sb.append(this.lexerExpressions.onVisitor());
-		sb.append(token == null ? name.equals("getNextToken") ? "\nreturn new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken);" : "\nreturn;" : "\nreturn new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax." + token.value() + ");");
+		if (sb.toString().contains("return") || this.token != null) {
+			sb.replace(7, 11, "Token");
+			if (name.equals("getNextToken")) {
+				sb.append("\nreturn new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken, this.column, this.line);");
+			} else if (this.token != null) {
+				sb.append("\nreturn new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.").append(token.value()).append(", this.column, this.line);");
+			}
+		}
 		sb.append("\n}");
 		return sb.toString();
 	}

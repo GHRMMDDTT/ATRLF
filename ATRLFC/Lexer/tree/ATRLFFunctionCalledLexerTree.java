@@ -20,7 +20,7 @@ public final class ATRLFFunctionCalledLexerTree extends ATRLFExpressionLexerTree
 		StringBuilder sb = new StringBuilder();
 		String name = this.name.value();
 		name = this.name.value().equals("main") ? "getNextToken" : name;
-		if (compilationUnit.functions.get(this.name.value()).token != null) {
+		if (compilationUnit.functions.get(this.name.value()).token != null || compilationUnit.functions.get(this.name.value()).onVisitor().contains("return") || name.equals("getNextToken")) {
 			sb.append("return ");
 		}
 		sb.append(name).append('(');

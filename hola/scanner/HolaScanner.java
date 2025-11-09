@@ -1,4 +1,4 @@
-package main.scanner;
+package hola.scanner;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,19 +9,22 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class MainScanner {
+public class HolaScanner {
 	private final char[] target;
 	private int position;
 
-	public MainScanner(char[] target) {
+	private int line;
+	private int column;
+
+	public HolaScanner(char[] target) {
 		this.target = target;
 	}
 
-	public MainScanner(String target) {
+	public HolaScanner(String target) {
 		this.target = target.toCharArray();
 	}
 
-	public MainScanner(File target) {
+	public HolaScanner(File target) {
 		this.target = this.readFile(target);
 	}
 
@@ -52,8 +55,10 @@ public class MainScanner {
 			return character();
 		} else if (this.has('=') || this.has('<') || this.has('>')) {
 			return operator();
+		} else {
+			this.error();
 		}
-		return new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken);
+		return new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken, this.column, this.line);
 	}
 
 	public Token identifier() {
@@ -78,7 +83,7 @@ public class MainScanner {
 				this.error();
 			}
 		}
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.IdentifierToken);
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.IdentifierToken, this.column, this.line);
 	}
 
 	public Token numeric() {
@@ -98,8 +103,10 @@ public class MainScanner {
 					this.error();
 				}
 			}
+		} else {
+			this.error();
 		}
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.NumericLiteralToken);
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.NumericLiteralToken, this.column, this.line);
 	}
 
 	public Token compactNumeric() {
@@ -136,13 +143,15 @@ public class MainScanner {
 					this.error();
 				}
 			} while ((this.peek() >= '0' && this.peek() <= '7'));
+		} else {
+			this.error();
 		}
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.CompactNumericLiteralToken);
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.CompactNumericLiteralToken, this.column, this.line);
 	}
 
 	public void whitespace() {
 		int oldPosition = this.position;
-		while (has(' ') || has('\t') || has('\r') || has('\n')) {
+		while (this.has(' ') || this.has('\t') || this.has('\r') || this.has('\n')) {
 			if (this.has(' ')) {
 				this.accept(' ');
 			} else if (this.has('\t')) {
@@ -150,10 +159,13 @@ public class MainScanner {
 			} else if (this.has('\r')) {
 				this.accept('\r');
 			} else if (this.has('\n')) {
+				this.line++;
+				this.column = this.position;
 				this.accept('\n');
+			} else {
+				this.error();
 			}
 		}
-		return;
 	}
 
 	public Token character() {
@@ -175,12 +187,16 @@ public class MainScanner {
 				this.accept('\\');
 			} else if (this.has('\'')) {
 				this.accept('\'');
+			} else {
+				this.error();
 			}
 		} else if (this.has('a')) {
 			this.accept('a');
+		} else {
+			this.error();
 		}
 		this.accept('\'');
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.CharacterLiteralToken);
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.CharacterLiteralToken, this.column, this.line);
 	}
 
 	public Token operator() {
@@ -194,6 +210,8 @@ public class MainScanner {
 					this.accept('>');
 				} else if (this.has('<')) {
 					this.accept('<');
+				} else {
+					this.error();
 				}
 			}
 		} else if (this.has('<')) {
@@ -203,13 +221,19 @@ public class MainScanner {
 			if (this.has('=')) {
 				this.accept('=');
 			}
+		} else {
+			this.error();
 		}
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.OperatorSyntaxToken);
+		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.OperatorSyntaxToken, this.column, this.line);
 	}
 
 	private char peek() {
-		if (this.position >= this.target.length) return '\0';
-		return this.target[this.position];
+		return seek(0);
+	}
+
+	private char seek(int of) {
+		if (this.position + of >= this.target.length) return '\0';
+		return this.target[this.position + of];
 	}
 
 	private boolean has(char target) {

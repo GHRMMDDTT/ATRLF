@@ -69,6 +69,11 @@ public record ATRLFToken(String value, ATRLFTokenType type, int line, int column
 		// Literals:
 		StringLiteralToken,
 		CharacterLiteralToken,
-		EndOfInputFile, NotFoundToken, IntegerLiteralToken;
+		IntegerLiteralToken,
+
+		EndOfInputFile,
+		NotFoundToken,
+		NotToken,
+		AllToken;
 	}
 }

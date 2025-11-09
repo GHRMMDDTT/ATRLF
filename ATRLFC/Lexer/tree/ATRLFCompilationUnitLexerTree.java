@@ -20,12 +20,13 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	@Override
 	public String onVisitor() {
 		this.parameters.forEach(parameters -> {
-			functions.put(parameters.name.value(), parameters);
+			if (this.functions.containsKey(parameters.name.value())) {
+				throw new RuntimeException("Duplicate function name (" + parameters.name.value() + ") is exist in: " + this.functions.get(parameters.name.value()).token.line() + ":" + this.functions.get(parameters.name.value()).token.column());
+			}
+			this.functions.put(parameters.name.value(), parameters);
 		});
 
-		return this.parameters.stream().map((tokens) -> {
-			return tokens.onVisitor();
-		}).collect(Collectors.joining("\n\n"));
+		return this.parameters.stream().map(ATRLFFunctionLexerTree::onVisitor).collect(Collectors.joining("\n\n"));
 	}
 	
 	public static final class ATRLFFunctionParametersLexerTree {
