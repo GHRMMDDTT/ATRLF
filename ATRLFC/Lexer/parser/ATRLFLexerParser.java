@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
@@ -59,7 +60,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
 
-		ArrayList<ATRLFFunctionParametersLexerTree> parametersLexerTrees = this.onFunctionParamereters();
+		ArrayList<ATRLFFunctionParametersLexerTree> parametersLexerTrees = this.onFunctionParameters();
 
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
 
@@ -85,7 +86,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 		return functionLexerTree;
 	}
 
-		private ArrayList<ATRLFFunctionParametersLexerTree> onFunctionParamereters() {
+		private ArrayList<ATRLFFunctionParametersLexerTree> onFunctionParameters() {
 			ArrayList<ATRLFFunctionParametersLexerTree> parametersLexerTrees = new ArrayList<>();
 			ATRLFFunctionParametersLexerTree _tmp;
 
@@ -108,13 +109,17 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			return parametersLexerTrees;
 		}
 
-	private ATRLFStatementLexerTree onParserAlternatives(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
-		ArrayList<ATRLFStatementLexerTree> expressionTrees = new ArrayList<>();
+	private ATRLFExpressionLexerTree onParserAlternatives(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
+		ArrayList<ATRLFExpressionLexerTree> expressionTrees = new ArrayList<>();
 		expressionTrees.add(this.onParserSequence(compilationUnitLexerTree));
 
-		while (validate(EnumSet.of(CURRENT)).type() == VerticalLineSymbolOperatorToken && validate(EnumSet.of(CURRENT)).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken) {
+		while (validate(EnumSet.of(CURRENT)).type() == VerticalLineSymbolOperatorToken && validate(EnumSet.of(CURRENT)).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken && validate(EnumSet.of(CURRENT)).type() != GreaterThanSymbolOperatorToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
 			expressionTrees.add(this.onParserSequence(compilationUnitLexerTree));
+		}
+
+		if (expressionTrees.size() == 1) {
+			return expressionTrees.getFirst();
 		}
 
 		ATRLFAlternativesStatementLexerTree alternatuives = new ATRLFAlternativesStatementLexerTree(expressionTrees);
@@ -122,7 +127,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 		return alternatuives;
 	}
 
-	private ATRLFStatementLexerTree onParserSequence(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
+	private ATRLFExpressionLexerTree onParserSequence(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
 		ArrayList<ATRLFExpressionLexerTree> expressionTrees = new ArrayList<>();
 		ATRLFToken delimiter;
 
@@ -130,9 +135,14 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 				(delimiter = validate(EnumSet.of(CURRENT, SEEK))).type() != EndOfInputFile &&
 						delimiter.type() != ParenthesisRightSymbolDelimiterSeparatorOperatorToken &&
 						delimiter.type() != VerticalLineSymbolOperatorToken &&
-						delimiter.type() != CurlyRightSymbolDelimiterSeparatorOperatorToken
+						delimiter.type() != CurlyRightSymbolDelimiterSeparatorOperatorToken &&
+						delimiter.type() != GreaterThanSymbolOperatorToken
 		) {
 			expressionTrees.add(this.onParserUnary(compilationUnitLexerTree));
+		}
+
+		if (expressionTrees.size() == 1) {
+			return expressionTrees.getFirst();
 		}
 
 		return new ATRLFSequenceStatementLexerTree(expressionTrees);
@@ -172,7 +182,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnaryMultipleOperatorExpresionTree(this.onParserRangeIndex()), right);
 
 			validate(EnumSet.of(CURRENT, CONSUME, NEXT), CurlyRightSymbolDelimiterSeparatorOperatorToken);
-		} else {
+		}  else {
 			right = new ATRLFUnaryExpressionLexerTree(new ATRLFUnaryExpressionLexerTree.ATRLFUnarySingleOperatorExpresionTree(expresion), right);
 		}
 		right.compilationUnit = compilationUnitLexerTree;
@@ -203,7 +213,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 	}
 
 	private ATRLFExpressionLexerTree onParserGroup(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
-		ATRLFToken expresion = validate(EnumSet.of(CURRENT, SEEK), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken, CharacterLiteralToken, IdentifierToken, StartSymbolArithmeticalOperatorToken);
+		ATRLFToken expresion = validate(EnumSet.of(CURRENT, SEEK), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken, SquareLeftSymbolDelimiterSeparatorOperatorToken, CharacterLiteralToken, IdentifierToken, StartSymbolArithmeticalOperatorToken, LessThanSymbolOperatorToken);
 
 		if (expresion.type() == ParenthesisLeftSymbolDelimiterSeparatorOperatorToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
@@ -230,10 +240,36 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 		} else if (expresion.type() == StartSymbolArithmeticalOperatorToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
 			return new ATRLFAnyExpressionLexerTree(expresion);
+		} else if (expresion.type() == LessThanSymbolOperatorToken) {
+			validate(EnumSet.of(CURRENT, NEXT));
+			ATRLFToken name = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+			validate(EnumSet.of(CURRENT, NEXT, CONSUME), ColonSymbolDelimiterOperatorToken);
+			ATRLFExpressionLexerTree expressionLexerTree = this.onParserAlternatives(compilationUnitLexerTree);
+			validate(EnumSet.of(CURRENT, NEXT, CONSUME), GreaterThanSymbolOperatorToken);
+			ATRLFTokenExpressionLexerTree tokenExpressionLexerTree = new ATRLFTokenExpressionLexerTree(name, expressionLexerTree);
+			tokenExpressionLexerTree.compilationUnit = compilationUnitLexerTree;
+			return tokenExpressionLexerTree;
 		}
 
 		return this.onParserCharacter(compilationUnitLexerTree);
 	}
+
+		private ArrayList<ATRLFToken> onCalledFunctionParameters() {
+			ArrayList<ATRLFToken> parametersLexerTrees = new ArrayList<>();
+			ATRLFToken _tmp;
+
+			while (validate(EnumSet.of(CURRENT, SEEK)).type() != ParenthesisRightSymbolDelimiterSeparatorOperatorToken) {
+				ATRLFToken name;
+
+				name  = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+
+				if (validate(EnumSet.of(CURRENT, SEEK)).type() == CommaSymbolDelimiterOperatorToken) {
+					validate(EnumSet.of(CURRENT, NEXT));
+				}
+				parametersLexerTrees.add(name);
+			}
+			return parametersLexerTrees;
+		}
 
 	private ArrayList<ArrayList<ATRLFExpressionLexerTree>> onParserRangeCharacter(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
 		ArrayList<ArrayList<ATRLFExpressionLexerTree>> expression = new ArrayList<>();
@@ -309,8 +345,8 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 					return t;
 				}
 			}
-			parserError(TypeError.PARSER, "Symbol Mismatch (Syntax Error): Expected " + buildError(types) +
-					", but found '" + t.value() + "'", t);
+			parserError(TypeError.PARSER, "Symbol Mismatch (Syntax Error): Expected [" + buildError(types) +
+					"], but found [" + t.value() + ']', t);
 		}
 
 		parserError(TypeError.CONSTRUCTION, "Construction Error: Missing valid flag configuration for 'validate'.", t);
@@ -338,7 +374,71 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 	private String buildError(ATRLFTokenType... types) {
 		if (types == null || types.length == 0) return "(no expected types)";
 		return Arrays.stream(types)
-				.map(Enum::name)
+				.map(a -> getName(a.name()))
 				.collect(Collectors.joining(" | "));
+	}
+
+	private String getName(String name) {
+		return switch (name) {
+			// --- Keywords ---
+			case "PackageKeywordToken" -> "package";
+			case "ImportKeywordToken" -> "import";
+			case "FromKeywordToken" -> "from";
+
+			case "PublicKeywordToken" -> "public";
+			case "PrivateKeywordToken" -> "private";
+			case "ProtectedKeywordToken" -> "protected";
+
+			case "FunctionKeywordToken" -> "function";
+
+			case "LexerClassTypeToken" -> "Lexer";
+			case "InterpreterClassTypeToken" -> "interpreter";
+
+			case "IfKeywordControlToken" -> "if";
+
+			// --- Symbols ---
+			case "AtSymbolToken" -> "@";
+			case "LowLineSymbolToken" -> "_";
+			case "TildeSymbolToken" -> "~";
+			case "QuotationSymbolToken" -> "\"";
+			case "ApostropheSymbolToken" -> "'";
+
+			// --- Operators ---
+			case "EqualSymbolOperatorToken" -> "=";
+			case "AndSymbolOperatorToken" -> "&";
+			case "VerticalLineSymbolOperatorToken" -> "|";
+			case "NotSymbolOperatorToken" -> "!";
+			case "QuestionSymbolOperatorToken" -> "?";
+			case "LessThanSymbolOperatorToken" -> "<";
+			case "GreaterThanSymbolOperatorToken" -> ">";
+
+			case "PlusSymbolArithmeticalOperatorToken" -> "+";
+			case "MinusSymbolArithmeticalOperatorToken" -> "-";
+			case "StartSymbolArithmeticalOperatorToken" -> "*";
+			case "SlashSymbolArithmeticalOperatorToken" -> "/";
+			case "ModuleSymbolArithmeticalOperatorToken" -> "%";
+			case "ExponentSymbolArithmeticalOperatorToken" -> "^";
+
+			// --- Delimiters / Separators ---
+			case "SemicolonSymbolDelimiterOperatorToken" -> ";";
+			case "ColonSymbolDelimiterOperatorToken" -> ":";
+			case "CommaSymbolDelimiterOperatorToken" -> ",";
+			case "DotSymbolDelimiterOperatorToken" -> ".";
+
+			case "ParenthesisLeftSymbolDelimiterSeparatorOperatorToken" -> "(";
+			case "ParenthesisRightSymbolDelimiterSeparatorOperatorToken" -> ")";
+			case "SquareLeftSymbolDelimiterSeparatorOperatorToken" -> "[";
+			case "SquareRightSymbolDelimiterSeparatorOperatorToken" -> "]";
+			case "CurlyLeftSymbolDelimiterSeparatorOperatorToken" -> "{";
+			case "CurlyRightSymbolDelimiterSeparatorOperatorToken" -> "}";
+
+			// --- Literals ---
+			case "StringLiteralToken" -> "string-literal";
+			case "CharacterLiteralToken" -> "char-literal";
+			case "IntegerLiteralToken" -> "integer-literal";
+
+			// --- Default case ---
+			default -> "Not Found";
+		};
 	}
 }

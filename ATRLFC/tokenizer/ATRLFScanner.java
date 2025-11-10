@@ -111,6 +111,8 @@ public class ATRLFScanner {
 			if (this.target[this.position] == '\r' || this.target[this.position] == '\n') {
 				this.column = this.position + 1;
 				this.line++;
+			} else if (this.target[this.position] == '\t') {
+				this.column = this.column - 3;
 			}
 			this.position++;
 		} while (this.position < this.target.length && (this.target[this.position] == ' ' || this.target[this.position] == '\r' || this.target[this.position] == '\t' || this.target[this.position] == '\f' || this.target[this.position] == '\b' || this.target[this.position] == '\n'));
@@ -176,19 +178,36 @@ public class ATRLFScanner {
 			}
 
 			if (!isValidHexadecimal) {
-				throw new RuntimeException("El escapable hexadecimal es incorrecto del de caracter: " + new String(this.target, startPos, this.position - startPos));
+				System.err.println("[ATRLF Scanner] Invalid Escape Sequence (Syntax Error): Invalid escape sequence in character literal: \""
+						+ new String(this.target, startPos, this.position - startPos)
+						+ "\" at line " + this.line + ", column " + (this.position - this.column));
+				System.exit(1);
 			}
 
 		} else {
-			this.position++;
+			if (this.target[this.position] != '\'') {
+				this.position++;
+			} else {
+				System.err.println("[ATRLF Scanner] Invalid Character Literal (Syntax Error): Unexpected single quote (') while parsing character literal at line "
+						+ this.line + ", column " + (this.position - this.column));
+				System.exit(1);
+
+			}
 		}
 
-		if (this.position > this.target.length || this.target[this.position] != '\'') {
+		try {
+			if (this.position > this.target.length || this.target[this.position] != '\'') {
+				isEnded = false;
+			}
+		} catch (Exception _) {
 			isEnded = false;
 		}
 
 		if (!isEnded) {
-			throw new RuntimeException("Falta en el final el \"'\" para dar por terminado el literal caracter en la linea: " + this.line);
+			System.err.println("[ATRLF Scanner] Unterminated Character Literal (Syntax Error): Missing closing single quote (') for character literal at line "
+					+ this.line + ", column " + (this.position - this.column));
+			System.exit(1);
+
 		}
 
 		this.position++;
@@ -260,7 +279,10 @@ public class ATRLFScanner {
 				}
 
 				if (!isValidHexadecimal) {
-					throw new RuntimeException("El escapable hexadecimal es incorrecto del de caracter: " + new String(this.target, startPos, this.position - startPos));
+					System.err.println("[ATRLF Scanner] Invalid Escape Sequence (Syntax Error): Invalid escape sequence in string literal: \""
+							+ new String(this.target, startPos, this.position - startPos)
+							+ "\" at line " + this.line + ", column " + (this.position - this.column));
+					System.exit(1);
 				}
 
 			} else {
@@ -269,7 +291,10 @@ public class ATRLFScanner {
 		}
 
 		if (!isEnded) {
-			throw new RuntimeException("Falta en el final el '\"' para dar por terminado el literal caracter en la linea: " + this.line);
+			System.err.println("[ATRLF Scanner]Unterminated String Literal (Syntax Error): Missing closing double quote (\") for string literal at line "
+					+ this.line + ", column " + (this.position - this.column));
+			System.exit(1);
+
 		}
 
 		this.position++;
@@ -336,7 +361,11 @@ public class ATRLFScanner {
 			case ']' -> SquareRightSymbolDelimiterSeparatorOperatorToken;
 			case '{' -> CurlyLeftSymbolDelimiterSeparatorOperatorToken;
 			case '}' -> CurlyRightSymbolDelimiterSeparatorOperatorToken;
-			default -> throw new IllegalStateException("Unexpected value: " + this.target[this.position]);
+			default -> {
+				System.err.println("[ATRLF Scanner] No Match (Syntax Error): Unexpected value of " + this.target[this.position]);
+				System.exit(-1);
+				yield null;
+			}
 		}, this.line, this.position - this.column);
 	}
 
@@ -375,13 +404,19 @@ public class ATRLFScanner {
 			return this.tokens;
 		}
 
-		if (this.symbols[this.target[this.position]]) {
-			this.tokens = this.getSymbol(this.position);
-			return this.tokens;
+		try {
+			if (this.symbols[this.target[this.position]]) {
+				this.tokens = this.getSymbol(this.position);
+				return this.tokens;
+			}
+		} catch (Exception _) {
+			System.err.println("[ATRLF Scanner] Mismtach SYmbol (Syntax Error): Unexpected symbol '"
+					+ this.target[this.position]
+					+ "' found. This character does not match any valid token pattern at line "
+					+ this.line + ", column " + (this.position - this.column));
+			System.exit(1);
 		}
 
-		System.err.println("[ATRLF Scanner] Symbol Mismatched (Syntax Error): Unexpected symbol: '" + this.target[this.position] + "' in the matched identifier | symbols. In " + this.line + ':' + (this.position - this.column));
-		System.exit(-1);
 		return null;
 	}
 

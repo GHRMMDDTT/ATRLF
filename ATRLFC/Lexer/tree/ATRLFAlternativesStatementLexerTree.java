@@ -8,9 +8,9 @@ import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.AllToken;
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.NotToken;
 
 public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLexerTree {
-	public final ArrayList<ATRLFStatementLexerTree> expressionTrees;
+	public final ArrayList<ATRLFExpressionLexerTree> expressionTrees;
 
-	public ATRLFAlternativesStatementLexerTree(ArrayList<ATRLFStatementLexerTree> expressionTrees) {
+	public ATRLFAlternativesStatementLexerTree(ArrayList<ATRLFExpressionLexerTree> expressionTrees) {
 		this.expressionTrees = expressionTrees;
 	}
 
@@ -20,11 +20,10 @@ public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLex
 		if (expressionTrees.size() == 1) {
 			sb.append(expressionTrees.getFirst().onVisitor());
 		} else {
-			for (ATRLFStatementLexerTree expressionTree : this.expressionTrees) {
-				ATRLFSequenceStatementLexerTree sequenceExpressionTree = (ATRLFSequenceStatementLexerTree) expressionTree;
+			for (ATRLFExpressionLexerTree expressionTree : this.expressionTrees) {
 				AtomicBoolean isNewLine = new AtomicBoolean(false);
 				sb.append("if (").append(
-						getCharacterExpressionTree(sequenceExpressionTree, false).stream().map(subExpresion -> {
+						getCharacterExpressionTree(expressionTree, false).stream().map(subExpresion -> {
 									String condition = "";
 
 									if (subExpresion.size() == 2) {
@@ -44,7 +43,7 @@ public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLex
 									return condition;
 								})
 								.collect(Collectors.joining(" || "))
-				).append(") {\n").append(isNewLine.get() ? "this.line++;\nthis.column = this.position;\n" : "").append(sequenceExpressionTree.onVisitor()).append("\n} else ");
+				).append(") {\n").append(isNewLine.get() ? "this.line++;\nthis.column = this.position;\n" : "").append(expressionTree.onVisitor()).append("\n} else ");
 			}
 			sb.append("{\nthis.error();\n}");
 		}

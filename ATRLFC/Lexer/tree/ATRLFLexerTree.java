@@ -31,6 +31,8 @@ public abstract class ATRLFLexerTree {
 			}
 		} else if (expressionTree instanceof ATRLFAnyExpressionLexerTree anyExpressionLexerTree) {
 			tokens.add(new ArrayList<>(List.of(new ATRLFToken("true", ATRLFToken.ATRLFTokenType.AllToken, anyExpressionLexerTree.character.line(), anyExpressionLexerTree.character.column()))));
+		} else if (expressionTree instanceof ATRLFTokenExpressionLexerTree tokenExpressionLexerTree) {
+			tokens.addAll(getCharacterExpressionTree(tokenExpressionLexerTree.expressionLexerTree, isNot));
 		} else if (expressionTree instanceof ATRLFAlternativesStatementLexerTree alternativesStatementTree) {
 			for (ATRLFExpressionLexerTree expressionTree1 : alternativesStatementTree.expressionTrees) {
 				tokens.addAll(getCharacterExpressionTree(expressionTree1, isNot));

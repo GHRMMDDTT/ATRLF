@@ -86,6 +86,9 @@ public final class ATRLFUnaryExpressionLexerTree extends ATRLFExpressionLexerTre
 				case ATRLFAnyExpressionLexerTree _ -> {
 					return "this.consume();";
 				}
+				case ATRLFTokenExpressionLexerTree tokenExpressionLexerTree -> {
+					return tokenExpressionLexerTree.onVisitor();
+				}
 				case ATRLFFunctionCalledLexerTree functionCalledLexerTree -> {
 					switch (unarySingleOperatorExpresionTree.operator.type()) {
 						case PlusSymbolArithmeticalOperatorToken -> {

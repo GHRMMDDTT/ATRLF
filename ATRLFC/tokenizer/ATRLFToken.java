@@ -1,5 +1,7 @@
 package ATRLFC.tokenizer;
 
+import java.util.Objects;
+
 public record ATRLFToken(String value, ATRLFTokenType type, int line, int column) {
 
 	@Override
@@ -10,6 +12,11 @@ public record ATRLFToken(String value, ATRLFTokenType type, int line, int column
 				", line=" + line +
 				", column=" + column +
 				'}';
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(value, type, line, column);
 	}
 
 	public enum ATRLFTokenType {

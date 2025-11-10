@@ -4,12 +4,13 @@ import ATRLFC.tokenizer.ATRLFToken;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	public ArrayList<ATRLFFunctionLexerTree> parameters;
 	public HashMap<String, ATRLFFunctionLexerTree> functions = new HashMap<>();
-	public final ArrayList<ATRLFToken> tokens = new ArrayList<>();
+	public final HashSet<ATRLFToken> tokens = new HashSet<>();
 
 	public ATRLFCompilationUnitLexerTree() { }
 
@@ -21,7 +22,13 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	public String onVisitor() {
 		this.parameters.forEach(parameters -> {
 			if (this.functions.containsKey(parameters.name.value())) {
-				throw new RuntimeException("Duplicate function name (" + parameters.name.value() + ") is exist in: " + this.functions.get(parameters.name.value()).token.line() + ":" + this.functions.get(parameters.name.value()).token.column());
+				System.err.println(String.format(
+						"[ATRLF Parser] Semantic Error (Duplicate Declaration): Function '%s' is already defined at line %d, column %d.",
+						parameters.name.value(),
+						this.functions.get(parameters.name.value()).token.line(),
+						this.functions.get(parameters.name.value()).token.column()
+				));
+				System.exit(-1);
 			}
 			this.functions.put(parameters.name.value(), parameters);
 		});

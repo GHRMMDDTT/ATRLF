@@ -55,7 +55,7 @@ import java.nio.charset.StandardCharsets;
 		code += has$argument_char$Code + "\n";
 		code += consumeCode + "\n";
 		code += accept$argument_char$Code + "\n";
-		code += errorCode + "}";
+		code += errorCode(name) + "}";
 		code = applyIndentation(code);
 		try {
 			Files.writeString(Path.of(ruteDir + name  + "Scanner.java"), code);
@@ -139,11 +139,9 @@ this.error();
 }
 """;
 
-	public static final String errorCode = """
-private void error() {
-throw new RuntimeException("No match in: " + this.peek() + " at " + this.position);
-}
-""";
+	public static final String errorCode(String name) {
+		return "private void error() {\nthrow new RuntimeException(\"[" + name + " Scanner] Invalid or Missing Character (Syntax Error): The character '\" + this.peek() + \"' is not valid at line \" + this.line + \", column \" + (this.position - this.column) + \" for this expression.\");\n}\n";
+	}
 
 	public static final String readFile$argument_File$Code = """
 private char[] readFile(File file) {

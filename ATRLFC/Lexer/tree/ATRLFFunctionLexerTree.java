@@ -18,7 +18,6 @@ public final class ATRLFFunctionLexerTree extends ATRLFExpressionLexerTree {
 		this.token = token;
 	}
 
-
 	@Override
 	public String onVisitor() {
 		if (this.token != null) {
@@ -28,14 +27,19 @@ public final class ATRLFFunctionLexerTree extends ATRLFExpressionLexerTree {
 		String name = this.name.value();
 		name = name.equals("main") ? "getNextToken" : name;
 		sb.append("public void").append(" ").append(name).append('(');
+		String visitor = "";
 		sb.append(this.parameters.stream().map((tokens) -> tokens.type.value() + ' ' + tokens.name.value()).collect(Collectors.joining(", "))).append(')').append(" {\nint oldPosition = this.position;\n");
 		sb.append(this.lexerExpressions.onVisitor());
 		if (sb.toString().contains("return") || this.token != null) {
-			sb.replace(7, 11, "Token");
-			if (name.equals("getNextToken")) {
-				sb.append("\nreturn new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken, this.column, this.line);");
-			} else if (this.token != null) {
-				sb.append("\nreturn new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.").append(token.value()).append(", this.column, this.line);");
+			sb.replace(7, 11, visitor + "Token");
+			if (!(this.lexerExpressions instanceof ATRLFUnaryExpressionLexerTree unaryExpressionLexerTree && unaryExpressionLexerTree.expresion instanceof ATRLFTokenExpressionLexerTree)) {
+				if (name.equals("getNextToken")) {
+					sb.append("\nreturn new Token(String.valueOf(this.peek()), Token.TokenSyntax.BadToken, this.column, this.line);");
+				} else if (this.token != null) {
+					sb.append("\nreturn new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.").append(token.value()).append(", this.column, this.line);");
+				} else {
+					sb.append("\nthrow new RuntimeException(\"This method should not return a token directly; it must return a 'Token-Expression' instead.\");");
+				}
 			}
 		}
 		sb.append("\n}");
