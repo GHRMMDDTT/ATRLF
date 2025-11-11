@@ -1,10 +1,19 @@
+package example;
+
 function Lexer:main(): = {
 	whitespace() (identifier() | numeric() | character() | string() | operator())
 };
 
 function Lexer:identifier(): = {
 	['a'-'z','A'-'Z']['a'-'z','A'-'Z','0'-'9','_']?+
-} => IdentifierToken;
+} => switch (it) {
+ 	case "if" -> IfKeywordToken;
+ 	case "else" -> ElseKeywordToken;
+ 	case "switch" -> SwitchKeywordToken;
+ 	case "case" -> CaseKeywordToken;
+ 	case "default" -> DefaultKeywordToken;
+ 	default -> IdentifierToken;
+};
 
 function Lexer:numeric(): = {
 	compactNumeric() | ['1'-'9']['0'-'9']?+

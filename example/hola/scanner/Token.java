@@ -13,28 +13,50 @@ public class Token {
 		this.line = line;
 	}
 
+	public final String getValue() {
+		return this.value;
+	}
+
+	public final TokenSyntax getType() {
+		return this.type;
+	}
+
+	public final int getColumn() {
+		return this.column;
+	}
+
+	public final int getLine() {
+		return this.line;
+	}
+
 	public enum TokenSyntax {
 		EqualLessSymbolOperatorToken,
-		IdentifierToken,
-		EqualGreaterSymbolOperatorToken,
-		CurlyLeft,
-		NumberHexadecimalLiteralToken,
-		MinusSymbolOperatorToken,
-		CharacterLiteralToken,
-		StringLiteralToken,
 		EqualSymbolOperatorToken,
-		NumericLiteralToken,
+		CurlyLeft,
+		EqualGreaterSymbolOperatorToken,
 		StartSymbolOperatorToken,
-		NeutralLiteralToken,
-		SlashSymbolOperatorToken,
-		GreaterSymbolOperatorToken,
-		PlusSymbolOperatorToken,
-		CurlyRight,
-		LessSymbolOperatorToken,
-		NumberBinaryLiteralToken,
-		NumberOctalLiteralToken,
 		FlatLineSymbolOperatorToken,
+		SwitchKeywordToken,
+		IdentifierToken,
+		NumberOctalLiteralToken,
+		NumberBinaryLiteralToken,
+		CurlyRight,
+		ElseKeywordToken,
+		GreaterSymbolOperatorToken,
+		NeutralLiteralToken,
 		EqualEqualSymbolOperatorToken,
-		BadToken;
+		NumberHexadecimalLiteralToken,
+		CaseKeywordToken,
+		MinusSymbolOperatorToken,
+		NumericLiteralToken,
+		IfKeywordToken,
+		DefaultKeywordToken,
+		StringLiteralToken,
+		CharacterLiteralToken,
+		SlashSymbolOperatorToken,
+		PlusSymbolOperatorToken,
+		LessSymbolOperatorToken,
+		BadToken,
+		EndOfInputFileToken
 	}
 }

@@ -11,10 +11,10 @@ import java.nio.file.Path;
 import java.util.stream.Collectors;
 
 public class ClassLexerBuilder {
-	private final ATRLFLexerTree tree;
+	private final ATRLFCompilationUnitLexerTree tree;
 	private final String name;
 
-	public ClassLexerBuilder(ATRLFLexerTree tree, String name) {
+	public ClassLexerBuilder(ATRLFCompilationUnitLexerTree tree, String name) {
 		this.tree = tree;
 		this.name = name;
 	}
@@ -31,7 +31,7 @@ public class ClassLexerBuilder {
 		String packager = this.name.substring(this.name.lastIndexOf('/') + 1);
 
 		String code;
-		code = "package " + packager + ".scanner;\n";
+		code = "package " + (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor() : "") + packager + ".scanner;\n";
 		code += """
 
 import java.io.File;
@@ -62,7 +62,7 @@ import java.nio.charset.StandardCharsets;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		code = "package " + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken;\n}\n}";
+		code = "package "+ (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor() : "")  + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken,\nEndOfInputFileToken\n}\n}";
 		code = applyIndentation(code);
 		try {
 			Files.writeString(Path.of(ruteDir + "Token.java"), code);
@@ -144,6 +144,8 @@ this.error();
 	}
 
 	public static final String readFile$argument_File$Code = """
+private Token EOIF = new Token(\"\\0\", Token.TokenSyntax.EndOfInputFileToken, this.column + 1, this.line); 
+
 private char[] readFile(File file) {
 try (FileInputStream fis = new FileInputStream(file)) {
 FileChannel channel = fis.getChannel();
@@ -173,6 +175,22 @@ this.value = value;
 this.type = type;
 this.column = column;
 this.line = line;
+}
+
+public final String getValue() {
+return this.value;
+}
+
+public final TokenSyntax getType() {
+return this.type;
+}
+
+public final int getColumn() {
+return this.column;
+}
+
+public final int getLine() {
+return this.line;
 }
 
 public enum TokenSyntax {

@@ -28,6 +28,8 @@ public class HolaScanner {
 		this.target = this.readFile(target);
 	}
 
+	private Token EOIF = new Token("\0", Token.TokenSyntax.EndOfInputFileToken, this.column + 1, this.line);
+
 	private char[] readFile(File file) {
 		try (FileInputStream fis = new FileInputStream(file)) {
 			FileChannel channel = fis.getChannel();
@@ -46,6 +48,9 @@ public class HolaScanner {
 
 	public Token getNextToken() {
 		int oldPosition = this.position;
+		if (this.position >= this.target.length) {
+			return this.EOIF;
+		}
 		whitespace();
 		if ((this.peek() >= 'a' && this.peek() <= 'z') || (this.peek() >= 'A' && this.peek() <= 'Z')) {
 			return identifier();
@@ -84,8 +89,27 @@ public class HolaScanner {
 			} else {
 				this.error();
 			}
+		}String value = new String(this.target, oldPosition, this.position - oldPosition);
+		switch (value) {
+			case "if": {
+				return new Token(value, Token.TokenSyntax.IfKeywordToken, this.column, this.line);
+			}
+			case "else": {
+				return new Token(value, Token.TokenSyntax.ElseKeywordToken, this.column, this.line);
+			}
+			case "switch": {
+				return new Token(value, Token.TokenSyntax.SwitchKeywordToken, this.column, this.line);
+			}
+			case "case": {
+				return new Token(value, Token.TokenSyntax.CaseKeywordToken, this.column, this.line);
+			}
+			case "default": {
+				return new Token(value, Token.TokenSyntax.DefaultKeywordToken, this.column, this.line);
+			}
+			default: {
+				return new Token(value, Token.TokenSyntax.IdentifierToken, this.column, this.line);
+			}
 		}
-		return new Token(new String(this.target, oldPosition, this.position - oldPosition), Token.TokenSyntax.IdentifierToken, this.column, this.line);
 	}
 
 	public Token numeric() {

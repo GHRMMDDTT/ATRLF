@@ -129,14 +129,14 @@ public class ATRLFScanner {
 			case "import" -> ImportKeywordToken;
 			case "from" -> FromKeywordToken;
 
-			case "public" -> PublicKeywordToken;
-			case "private" -> PrivateKeywordToken;
-			case "protected" -> ProtectedKeywordToken;
-
 			case "Lexer" -> LexerClassTypeToken;
 			case "interpreter" -> InterpreterClassTypeToken;
 
 			case "function" -> FunctionKeywordToken;
+
+			case "switch" -> SwitchKeywordToken;
+			case "case" -> CaseKeywordToken;
+			case "default" -> DefaultKeywordToken;
 
 			case "if" -> IfKeywordControlToken;
 			default -> IdentifierToken;

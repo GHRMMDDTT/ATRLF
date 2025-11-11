@@ -6,16 +6,17 @@ import ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType;
 import ATRLFC.Lexer.tree.*;
 import ATRLFC.Lexer.tree.ATRLFFunctionLexerTree.ATRLFFunctionParametersLexerTree;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
 import static ATRLFC.Lexer.parser.ATRLFLexerParser.Flag.*;
 
+@SuppressWarnings({ "all" })
 public record ATRLFLexerParser(ATRLFScanner scanner) {
 	private final static ATRLFToken NOT_FOUND_TOKEN = new ATRLFToken("\0", NotFoundToken, -1, -1);
 
@@ -39,9 +40,26 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 	public ATRLFLexerTree onParser() {
 		ArrayList<ATRLFFunctionLexerTree> expressionLexer = new ArrayList<>();
 
-		ATRLFCompilationUnitLexerTree compilationUnitLexerTree = new ATRLFCompilationUnitLexerTree();
+		ATRLFPackageDeclarationLexerTree packageDeclarationLexerTree = null;
+		ArrayList<ATRLFToken> identifier = new ArrayList<>();
 
-		while (validate(EnumSet.of(CURRENT)).type() != EndOfInputFile) {
+		if (validate(EnumSet.of(CURRENT, SEEK, NEXT), PackageKeywordToken) != NOT_FOUND_TOKEN) {
+			ATRLFToken subDir = validate(EnumSet.of(CURRENT, CONSUME, NEXT), IdentifierToken);
+			identifier.add(subDir);
+
+			while (validate(EnumSet.of(CURRENT, SEEK), DotSymbolDelimiterOperatorToken).type() != NotFoundToken) {
+				validate(EnumSet.of(CURRENT, CONSUME, NEXT), DotSymbolDelimiterOperatorToken);
+				subDir = validate(EnumSet.of(CURRENT, CONSUME, NEXT), IdentifierToken);
+				identifier.add(subDir);
+			}
+			validate(EnumSet.of(CURRENT, CONSUME, NEXT), SemicolonSymbolDelimiterOperatorToken);
+			packageDeclarationLexerTree = new ATRLFPackageDeclarationLexerTree(identifier);
+		}
+
+
+		ATRLFCompilationUnitLexerTree compilationUnitLexerTree = new ATRLFCompilationUnitLexerTree(packageDeclarationLexerTree);
+
+		while (validate(EnumSet.of(CURRENT, SEEK)).type() != EndOfInputFile) {
 			expressionLexer.add(this.onFunctions(compilationUnitLexerTree));
 		}
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), EndOfInputFile);
@@ -72,16 +90,51 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyRightSymbolDelimiterSeparatorOperatorToken);
 
-		ATRLFToken token = null;
+		ATRLFFunctionLexerTree.ATRLFFunctionReturn returener = null;
 
 		if (validate(EnumSet.of(CURRENT, NEXT, SEEK), EqualSymbolOperatorToken) != NOT_FOUND_TOKEN) {
 			validate(EnumSet.of(CURRENT, NEXT, CONSUME), GreaterThanSymbolOperatorToken);
-			token = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+			if (validate(EnumSet.of(CURRENT, SEEK), IdentifierToken) != NOT_FOUND_TOKEN) {
+				returener = new ATRLFFunctionLexerTree.ATRLFFunctionSingleReturn(validate(EnumSet.of(CURRENT, NEXT), IdentifierToken));
+			} else if (validate(EnumSet.of(CURRENT, NEXT, SEEK), SwitchKeywordToken) != NOT_FOUND_TOKEN) {
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
+
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyLeftSymbolDelimiterSeparatorOperatorToken);
+
+				ArrayList<ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn.ATRLFFunctionCaseReturn> caseReturns = new ArrayList<>();
+
+				while (validate(EnumSet.of(CURRENT, SEEK)).type() == CaseKeywordToken || (validate(EnumSet.of(CURRENT, SEEK)).type() != DefaultKeywordToken)) {
+					ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn.ATRLFFunctionCaseReturn caseReturn;
+					validate(EnumSet.of(CURRENT, NEXT, CONSUME), CaseKeywordToken);
+					ATRLFToken value = validate(EnumSet.of(CURRENT, NEXT, CONSUME), StringLiteralToken);
+					validate(EnumSet.of(CURRENT, NEXT, CONSUME), MinusSymbolArithmeticalOperatorToken);
+					validate(EnumSet.of(CURRENT, NEXT, CONSUME), GreaterThanSymbolOperatorToken);
+					ATRLFToken returnType = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+					validate(EnumSet.of(CURRENT, NEXT, CONSUME), SemicolonSymbolDelimiterOperatorToken);
+					caseReturn = new ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn.ATRLFFunctionCaseReturn(value, returnType);
+					caseReturns.add(caseReturn);
+				}
+				ATRLFFunctionLexerTree.ATRLFFunctionSingleReturn defaultReturn;
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), DefaultKeywordToken);
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), MinusSymbolArithmeticalOperatorToken);
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), GreaterThanSymbolOperatorToken);
+				ATRLFToken returnType = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), SemicolonSymbolDelimiterOperatorToken);
+				defaultReturn = new ATRLFFunctionLexerTree.ATRLFFunctionSingleReturn(returnType);
+				returener = new ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn(caseReturns, defaultReturn);
+
+				validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyRightSymbolDelimiterSeparatorOperatorToken);
+			} else {
+				System.err.println("IDK, LOL");
+				System.exit(-1);
+			}
 		}
 
 		validate(EnumSet.of(CURRENT, NEXT, CONSUME), SemicolonSymbolDelimiterOperatorToken);
 
-		ATRLFFunctionLexerTree functionLexerTree = new ATRLFFunctionLexerTree(name, parametersLexerTrees, expressionLexerTree, token);
+		ATRLFFunctionLexerTree functionLexerTree = new ATRLFFunctionLexerTree(name, parametersLexerTrees, expressionLexerTree, returener);
 		functionLexerTree.compilationUnit = compilationUnitLexerTree;
 		return functionLexerTree;
 	}
@@ -113,7 +166,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 		ArrayList<ATRLFExpressionLexerTree> expressionTrees = new ArrayList<>();
 		expressionTrees.add(this.onParserSequence(compilationUnitLexerTree));
 
-		while (validate(EnumSet.of(CURRENT)).type() == VerticalLineSymbolOperatorToken && validate(EnumSet.of(CURRENT)).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken && validate(EnumSet.of(CURRENT)).type() != GreaterThanSymbolOperatorToken) {
+		while (validate(EnumSet.of(CURRENT, SEEK)).type() == VerticalLineSymbolOperatorToken && validate(EnumSet.of(CURRENT, SEEK)).type() != CurlyRightSymbolDelimiterSeparatorOperatorToken && validate(EnumSet.of(CURRENT, SEEK)).type() != GreaterThanSymbolOperatorToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
 			expressionTrees.add(this.onParserSequence(compilationUnitLexerTree));
 		}
@@ -349,6 +402,15 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 					"], but found [" + t.value() + ']', t);
 		}
 
+		if (isCurrent && isNext) {
+			scanner.getNextToken();
+			return t;
+		}
+
+		if (isCurrent) {
+			return t;
+		}
+
 		parserError(TypeError.CONSTRUCTION, "Construction Error: Missing valid flag configuration for 'validate'.", t);
 		return null;
 	}
@@ -385,11 +447,11 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			case "ImportKeywordToken" -> "import";
 			case "FromKeywordToken" -> "from";
 
-			case "PublicKeywordToken" -> "public";
-			case "PrivateKeywordToken" -> "private";
-			case "ProtectedKeywordToken" -> "protected";
-
 			case "FunctionKeywordToken" -> "function";
+
+			case "SwitchKeywordToken" -> "switch";
+			case "CaseKeywordToken" -> "case";
+			case "DefaultKeywordToken" -> "default";
 
 			case "LexerClassTypeToken" -> "Lexer";
 			case "InterpreterClassTypeToken" -> "interpreter";

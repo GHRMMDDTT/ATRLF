@@ -28,11 +28,11 @@ public record ATRLFToken(String value, ATRLFTokenType type, int line, int column
 		ImportKeywordToken,
 		FromKeywordToken,
 
-		PublicKeywordToken,
-		PrivateKeywordToken,
-		ProtectedKeywordToken,
-
 		FunctionKeywordToken,
+
+		SwitchKeywordToken,
+		CaseKeywordToken,
+		DefaultKeywordToken,
 
 		LexerClassTypeToken,
 		InterpreterClassTypeToken,

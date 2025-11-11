@@ -1,5 +1,0 @@
-import { scanner } from hola;
-
-function Main:main(args: String...): = {
-    let scanner = new scanner();
-};

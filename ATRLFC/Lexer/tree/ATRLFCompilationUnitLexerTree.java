@@ -11,8 +11,11 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	public ArrayList<ATRLFFunctionLexerTree> parameters;
 	public HashMap<String, ATRLFFunctionLexerTree> functions = new HashMap<>();
 	public final HashSet<ATRLFToken> tokens = new HashSet<>();
+	public ATRLFPackageDeclarationLexerTree packageDeclarationLexerTree;
 
-	public ATRLFCompilationUnitLexerTree() { }
+	public ATRLFCompilationUnitLexerTree(ATRLFPackageDeclarationLexerTree packageDeclarationLexerTree) {
+		this.packageDeclarationLexerTree = packageDeclarationLexerTree;
+	}
 
 	public void setParameters(ArrayList<ATRLFFunctionLexerTree> parameters) {
 		this.parameters = parameters;
@@ -22,12 +25,12 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	public String onVisitor() {
 		this.parameters.forEach(parameters -> {
 			if (this.functions.containsKey(parameters.name.value())) {
-				System.err.println(String.format(
-						"[ATRLF Parser] Semantic Error (Duplicate Declaration): Function '%s' is already defined at line %d, column %d.",
+				System.err.printf(
+						"[ATRLF Parser] Semantic Error (Duplicate Declaration): Function '%s' is already defined at line %d, column %d.%n",
 						parameters.name.value(),
-						this.functions.get(parameters.name.value()).token.line(),
-						this.functions.get(parameters.name.value()).token.column()
-				));
+						this.functions.get(parameters.name.value()).name.line(),
+						this.functions.get(parameters.name.value()).name.column()
+				);
 				System.exit(-1);
 			}
 			this.functions.put(parameters.name.value(), parameters);
