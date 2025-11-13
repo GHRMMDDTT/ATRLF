@@ -3,8 +3,6 @@ package ATRLFC.Lexer.tree;
 import ATRLFC.tokenizer.ATRLFToken;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import static ATRLFC.tokenizer.ATRLFToken.ATRLFTokenType.*;
@@ -21,230 +19,166 @@ public final class ATRLFUnaryExpressionLexerTree extends ATRLFExpressionLexerTre
 	}
 
 	@Override
-	public String onVisitor() {
-		if (this.operator instanceof ATRLFUnarySingleOperatorExpresionTree unarySingleOperatorExpresionTree) {
+	public String onVisitor(boolean isNot) {
+		if (this.operator instanceof ATRLFUnarySingleOperatorExpresionTree single) {
 			switch (this.expresion) {
-				case ATRLFGroupExpressionLexerTree groupExpressionTree -> {
-					switch (unarySingleOperatorExpresionTree.operator.type()) {
+				case ATRLFCharacterExpressionLexerTree character -> {
+					switch (single.operator.type()) {
 						case PlusSymbolArithmeticalOperatorToken -> {
-							return "do {\n" + groupExpressionTree.onVisitor() + " else {\nthis.error();\n}\n} while (" + getCharacterExpressionTree(groupExpressionTree.expresion, false).stream().map(atrlfTokens -> {
-								String condition = "";
-								if (atrlfTokens.size() == 2) {
-									if (atrlfTokens.getFirst().type() == NotToken) condition = "!(";
-									condition += String.format("(this.peek() >= %s && this.peek() <= %s)", atrlfTokens.getFirst().value(), atrlfTokens.getLast().value());
-								} else {
-									if (atrlfTokens.getFirst().type() == NotToken) condition = "!";
-									condition += String.format("this.has(%s)", atrlfTokens.getFirst().value());
-								}
-								return condition;
-							}).collect(Collectors.joining(" || ")) + ");";
+							return "this.accept(%1$s);\nwhile (this.has(%1$s)) {\nthis.consume();\n}".formatted(character.character.value());
 						}
 						case QuestionSymbolOperatorToken -> {
-							return "if (" + getCharacterExpressionTree(groupExpressionTree.expresion, false).stream().map(atrlfTokens -> {
-								String condition = "";
-								if (atrlfTokens.size() == 2) {
-									if (atrlfTokens.getFirst().type() == NotToken) condition = "!(";
-									condition += String.format("(this.peek() >= %s && this.peek() <= %s)", atrlfTokens.getFirst().value(), atrlfTokens.getLast().value());
-									if (atrlfTokens.getFirst().type() == NotToken) condition += ")";
-								} else {
-									if (atrlfTokens.getFirst().type() == NotToken) condition = "!";
-									condition += String.format("this.has(%s)", atrlfTokens.getFirst().value());
-								}
-								return condition;
-							}).collect(Collectors.joining(" || ")) + ") {\n" + groupExpressionTree.onVisitor() + "\n}";
+							return "if (this.has(%s)) {\nthis.consume();\n}".formatted(character.character.value());
+						}
+						case NotSymbolOperatorToken -> {
+							return "if (!this.has(%s)) {\nthis.consume();\n} else {\nthis.error();\n}".formatted(character.character.value());
 						}
 						default -> {
-							return groupExpressionTree.expresion.onVisitor();
+							return "this.accept(%s);".formatted(character.character.value());
 						}
 					}
 				}
-				case ATRLFRangeCharacterExpressionLexerTree rangeCharacterExpressionTree -> {
-					switch (unarySingleOperatorExpresionTree.operator.type()) {
+				case ATRLFGroupExpressionLexerTree group -> {
+					switch (single.operator.type()) {
 						case PlusSymbolArithmeticalOperatorToken -> {
-							return "do {\n" + rangeCharacterExpressionTree.onVisitor() + "\n} while (" + rangeCharacterExpressionTree.expression.stream().map(expressionTrees -> {
-								if (expressionTrees.size() == 2) {
-									return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().toString(), expressionTrees.getLast().toString());
-								} else {
-									return String.format("has(%s)", expressionTrees.getFirst().toString());
-								}
-							}).collect(Collectors.joining(" || ")) + ");";
+							return "%1$s\nwhile (%2$s) {\n%1$s\n}".formatted(group.onVisitor(isNot), getCharacterExpressionTreeToString(group, isNot));
 						}
 						case QuestionSymbolOperatorToken -> {
-							return "if (" + rangeCharacterExpressionTree.expression.stream().map(expressionTrees -> {
-								if (expressionTrees.size() == 2) {
-									return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().toString(), expressionTrees.getLast().toString());
-								} else {
-									return String.format("has(%s)", expressionTrees.getFirst().toString());
-								}
-							}).collect(Collectors.joining(" || ")) + ") {\n" + rangeCharacterExpressionTree.onVisitor() + "\n}";
+							return "if (%2$s) {\n%1$s\n}".formatted(group.onVisitor(isNot), getCharacterExpressionTreeToString(group, isNot));
 						}
 						default -> {
-							return rangeCharacterExpressionTree.onVisitor();
+							return group.onVisitor(isNot);
 						}
 					}
 				}
-				case ATRLFAnyExpressionLexerTree _ -> {
-					return "this.consume();";
-				}
-				case ATRLFTokenExpressionLexerTree tokenExpressionLexerTree -> {
-					return tokenExpressionLexerTree.onVisitor();
-				}
-				case ATRLFFunctionCalledLexerTree functionCalledLexerTree -> {
-					switch (unarySingleOperatorExpresionTree.operator.type()) {
+				case ATRLFRangeCharacterExpressionLexerTree characterRange -> {
+					switch (single.operator.type()) {
 						case PlusSymbolArithmeticalOperatorToken -> {
-							return "do {\n" + functionCalledLexerTree.onVisitor() + "\n} while (" + getCharacterExpressionTree(compilationUnit.functions.get(functionCalledLexerTree.name.value()), false).stream().map(expressionTrees -> {
-								if (expressionTrees.size() == 2) {
-									return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().value(), expressionTrees.getLast().value());
-								} else {
-									return String.format("has(%s)", expressionTrees.getFirst().value());
-								}
-							}).collect(Collectors.joining(" || ")) + ");";
+							return "if (%1$s) {\nthis.consume();\nwhile (%1$s) {\nthis.consume();\n}\n} else {\nthis.error();\n}".formatted(getCharacterExpressionTreeToString(characterRange, isNot));
 						}
 						case QuestionSymbolOperatorToken -> {
-							String value = functionCalledLexerTree.onVisitor();
-							return "if (" + getCharacterExpressionTree(compilationUnit.functions.get(functionCalledLexerTree.name.value()), false).stream().map(expressionTrees -> {
-								if (expressionTrees.size() == 2) {
-									return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().value(), expressionTrees.getLast().value());
-								} else {
-									return String.format("has(%s)", expressionTrees.getFirst().value());
-								}
-							}).collect(Collectors.joining(" || ")) + ") {\n" + value + "\n}";
+							return "if (%s) {\nthis.consume();\n}".formatted(getCharacterExpressionTreeToString(characterRange, isNot));
 						}
 						default -> {
-							return functionCalledLexerTree.onVisitor();
+							return "if (%s) {\nthis.consume();\n} else {\nthis.error();\n}".formatted(getCharacterExpressionTreeToString(characterRange, isNot));
+						}
+					}
+				}
+				case ATRLFFunctionCalledLexerTree function -> {
+					switch (single.operator.type()) {
+						case PlusSymbolArithmeticalOperatorToken -> {
+							return "%1$s\nwhile (%2$s) {\n%1$s\n}".formatted(function.onVisitor(isNot), getCharacterExpressionTreeToString(function, isNot));
+						}
+						case QuestionSymbolOperatorToken -> {
+							return "if (%2$s) {\n%1$s\n}".formatted(function.onVisitor(isNot), getCharacterExpressionTreeToString(function, isNot));
+						}
+						default -> {
+							return function.onVisitor(isNot);
+						}
+					}
+				}
+				case ATRLFTokenExpressionLexerTree token -> {
+					return token.onVisitor(isNot);
+				}
+				case ATRLFAnyExpressionLexerTree any -> {
+					return any.onVisitor(isNot);
+				}
+				case ATRLFUnaryExpressionLexerTree unary -> {
+					if (unary.operator instanceof ATRLFUnarySingleOperatorExpresionTree subSingle) {
+						final boolean isOptionalMore = subSingle.operator.type() == PlusSymbolArithmeticalOperatorToken && single.operator.type() == QuestionSymbolOperatorToken;
+						switch (unary.expresion) {
+							case ATRLFCharacterExpressionLexerTree character -> {
+								if (isOptionalMore) {
+									return "while (this.has(%s)) {\nthis.consume();\n}".formatted(character.character.value());
+								} else if (single.operator.type() == NotSymbolOperatorToken) {
+									switch (subSingle.operator.type()) {
+										case QuestionSymbolOperatorToken -> {
+											return "if (!this.has(%s)) {\nthis.consume();\n}".formatted(character.character.value());
+										}
+										case PlusSymbolArithmeticalOperatorToken -> {
+											return "if (!this.has(%1$s)) {\nthis.consume();\nwhile(!this.has(%1$s)) {\nthis.consume();\n}\n}".formatted(character.character.value());
+										}
+									}
+								}
+							}
+							case ATRLFGroupExpressionLexerTree group -> {
+								if (isOptionalMore) {
+									return "while (%2$s) {\n%1$s\n}".formatted(group.onVisitor(isNot), getCharacterExpressionTreeToString(group, isNot));
+								}
+							}
+							case ATRLFFunctionCalledLexerTree function -> {
+								if (isOptionalMore) {
+									return "while (%2$s) {\n%1$s\n}".formatted(function.onVisitor(isNot), getCharacterExpressionTreeToString(function, isNot));
+								}
+							}
+							case ATRLFRangeCharacterExpressionLexerTree characterRange -> {
+								if (isOptionalMore) {
+									return "while (%1$s) {\nthis.consume();\n}".formatted(getCharacterExpressionTreeToString(characterRange, isNot));
+								}
+							}
+							case ATRLFUnaryExpressionLexerTree subUnary -> {
+								if (subUnary.operator instanceof ATRLFUnarySingleOperatorExpresionTree preSingle) {
+									switch (subUnary.expresion) {
+										case ATRLFCharacterExpressionLexerTree character -> {
+											if (single.operator.type() == NotSymbolOperatorToken && subSingle.operator.type() == QuestionSymbolOperatorToken && preSingle.operator.type() == PlusSymbolArithmeticalOperatorToken) {
+												if (!isNot) return "while (this.has(%1$s)) {\nthis.consume();\n}".formatted(character.character.value());
+												return "while (!this.has(%1$s)) {\nthis.consume();\n}".formatted(character.character.value());
+											}
+										}
+										default -> {
+											return "?";
+										}
+									}
+								}
+							}
+							default -> {
+								return "??";
+							}
 						}
 					}
 				}
 				default -> {
-					switch (unarySingleOperatorExpresionTree.operator.type()) {
-						case PlusSymbolArithmeticalOperatorToken -> {
-							return "this.accept(" + this.expresion.onVisitor() + "); while(this.has(" + this.expresion.onVisitor() + ")) {\nthis.consume();\n}";
-						}
-						case QuestionSymbolOperatorToken -> {
-							if (this.expresion instanceof ATRLFUnaryExpressionLexerTree unaryExpressionTree && unaryExpressionTree.operator instanceof ATRLFUnarySingleOperatorExpresionTree singleOperatorExpresionTree && singleOperatorExpresionTree.operator.type() == PlusSymbolArithmeticalOperatorToken) {
-								if (unaryExpressionTree.expresion instanceof ATRLFGroupExpressionLexerTree groupExpressionTree) {
-									return "while (" + getCharacterExpressionTree(groupExpressionTree.expresion, false).stream().flatMap(ArrayList::stream)
-											.map((atrlfToken -> {
-												String condition = "";
-												if (atrlfToken.type() == NotToken) condition = "!";
-												condition += String.format("this.has(%s)", atrlfToken.value());
-												return condition;
-											})).collect(Collectors.joining(" || ")) + ") {\n" + groupExpressionTree.onVisitor() + "\n}";
-								} else if (unaryExpressionTree.expresion instanceof ATRLFRangeCharacterExpressionLexerTree rangeCharacterExpressionTree) {
-									return "while (" + rangeCharacterExpressionTree.expression.stream().map(expressionTrees -> {
-										if (expressionTrees.size() == 2) {
-											return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().toString(), expressionTrees.getLast().toString());
-										} else {
-											return String.format("has(%s)", expressionTrees.getFirst().toString());
-										}
-									}).collect(Collectors.joining(" || ")) + ") {\n" + rangeCharacterExpressionTree.onVisitor() + "\n}";
-								} else if (unaryExpressionTree.expresion instanceof ATRLFFunctionCalledLexerTree functionCalledLexerTree) {
-									return "while (" +
-											getCharacterExpressionTree(compilationUnit.functions.get(functionCalledLexerTree.name.value()), false)
-													.stream()
-													.map(expressionTrees -> {
-														if (expressionTrees.size() == 2) {
-															return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().value(), expressionTrees.getLast().value());
-														} else {
-															return String.format("has(%s)", expressionTrees.getFirst().value());
-														}
-													}).collect(Collectors.joining(" || ")) + ") {\n" + functionCalledLexerTree.onVisitor() + "\n}";
-								}
-								return "while (this.has(" + unaryExpressionTree.expresion.onVisitor() + ")) {\nthis.consume();\n}";
-							}
-							return "if (this.has(" + this.expresion.onVisitor() + ")) {\nthis.consume();\n}";
-						}
-						case NotSymbolOperatorToken -> {
-							if (this.expresion instanceof ATRLFUnaryExpressionLexerTree unaryExpressionTree && unaryExpressionTree.operator instanceof ATRLFUnarySingleOperatorExpresionTree singleOperatorExpresionTree && singleOperatorExpresionTree.operator.type() == QuestionSymbolOperatorToken) {
-								if (unaryExpressionTree.expresion instanceof ATRLFUnaryExpressionLexerTree unaryExpressionLexerTree && unaryExpressionLexerTree.operator instanceof ATRLFUnarySingleOperatorExpresionTree subSingleOperatorExpresionTree && subSingleOperatorExpresionTree.operator.type() == PlusSymbolArithmeticalOperatorToken) {
-									return "while (!this.has(" + unaryExpressionLexerTree.expresion.onVisitor() + ")) {\nthis.consume();\n}";
-								} else {
-									return "if (!this.has(" + unaryExpressionTree.expresion.onVisitor() + ")) {\nthis.consume();\n}";
-								}
-							} else if (this.expresion instanceof ATRLFUnaryExpressionLexerTree unaryExpressionTree && unaryExpressionTree.operator instanceof ATRLFUnarySingleOperatorExpresionTree singleOperatorExpresionTree && singleOperatorExpresionTree.operator.type() == PlusSymbolArithmeticalOperatorToken) {
-								return "do {\nif (!this.has(" + unaryExpressionTree.expresion.onVisitor() + ")) {\nthis.consume();\n} else {\nthis.error();\n}\n} while (!this.has(" + unaryExpressionTree.expresion.onVisitor() + "));";
-							}
-							return "if (!this.has(" + this.expresion.onVisitor() + ")) {\nthis.consume();\n} else {\nthis.error();\n}";
-						}
-						default -> {
-							return "this.accept(" + this.expresion.onVisitor() + ");";
-						}
-					}
+					return "???";
 				}
 			}
 		} else if (this.operator instanceof ATRLFUnaryMultipleOperatorExpresionTree unaryMultipleOperatorExpresionTree) {
 			switch (this.expresion) {
-				case ATRLFGroupExpressionLexerTree groupExpressionTree -> {
-					return "{\nint count" + (indexOfCount) + " = 0;\nwhile (" + getCharacterExpressionTree(groupExpressionTree.expresion, false).stream().map(expressionTrees -> {
-						if (expressionTrees.size() == 2) {
-							return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().value(), expressionTrees.getLast().value());
-						} else {
-							return String.format("has(%s)", expressionTrees.getFirst().toString());
-						}
-					}).collect(Collectors.joining(" || ")) + ") {\n" + groupExpressionTree.onVisitor() + "\ncount" + (indexOfCount) + "++;\n}\nif (!(" + unaryMultipleOperatorExpresionTree.multiExpresion.stream().map(subExpresion -> {
-						String condition;
-						if (subExpresion.size() == 2) {
-							condition = String.format("(count%1$s >= %2$s && count%1$s <= %3$s)", indexOfCount, subExpresion.getFirst().value(), subExpresion.getLast().value());
-						} else {
-							condition = String.format("count%s == %s", indexOfCount, subExpresion.getFirst().value());
-						}
-						return condition;
-					}).collect(Collectors.joining(" || ")) + ")) {\nthis.error();\n}\n}";
+				case ATRLFCharacterExpressionLexerTree character -> {
+					return "{\nint count%1$s = 0;\nwhile(this.has(%2$s)) {\nthis.consume();\ncount%1$s++;\n}\nif (!(%3$s)) {\nthis.error();\n}\n}".formatted(indexOfCount, character, getRangeIndex(unaryMultipleOperatorExpresionTree, indexOfCount++));
 				}
-				case ATRLFRangeCharacterExpressionLexerTree rangeCharacterExpressionTree -> {
-					String str = "{\nint count" + (indexOfCount) + " = 0;\nwhile (" + rangeCharacterExpressionTree.expression.stream().map(expressionTrees -> {
-						if (expressionTrees.size() == 2) {
-							return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().toString(), expressionTrees.getLast().toString());
-						} else {
-							return String.format("has(%s)", expressionTrees.getFirst().toString());
-						}
-					}).collect(Collectors.joining(" || ")) + ") {\nthis.consume();\ncount" + (indexOfCount) + "++;\n}\nif (!(" + unaryMultipleOperatorExpresionTree.multiExpresion.stream().map(subExpresion -> {
-						String condition;
-						if (subExpresion.size() == 2) {
-							condition = String.format("(count%1$s >= %2$s && count%1$s <= %3$s)", indexOfCount, subExpresion.getFirst().value(), subExpresion.getLast().value());
-						} else {
-							condition = String.format("count%s == %s", indexOfCount, subExpresion.getFirst().value());
-						}
-						return condition;
-					}).collect(Collectors.joining(" || ")) + ")) {\nthis.error();\n}\n}";
-					indexOfCount++;
-					return str;
+				case ATRLFRangeCharacterExpressionLexerTree characterRange -> {
+					return "{\nint count%1$s = 0;\nwhile(%2$s) {\nthis.consume();\ncount%1$s++;\n}\nif (!(%3$s)) {\nthis.error();\n}\n}".formatted(indexOfCount, getCharacterExpressionTreeToString(characterRange, isNot), getRangeIndex(unaryMultipleOperatorExpresionTree, indexOfCount++));
 				}
-				case ATRLFFunctionCalledLexerTree functionCalledLexerTree -> {
-					String str = "{\nint count" + (indexOfCount) + " = 0;\nwhile (" + getCharacterExpressionTree(compilationUnit.functions.get(functionCalledLexerTree.name.value()), false).stream().map(expressionTrees -> {
-						if (expressionTrees.size() == 2) {
-							return String.format("(this.peek() >= %s && this.peek() <= %s)", expressionTrees.getFirst().value(), expressionTrees.getLast().value());
-						} else {
-							return String.format("has(%s)", expressionTrees.getFirst().value());
-						}
-					}).collect(Collectors.joining(" || ")) + ") {\nthis.consume();\ncount" + (indexOfCount) + "++;\n}\nif (!(" + unaryMultipleOperatorExpresionTree.multiExpresion.stream().map(subExpresion -> {
-						String condition;
-						if (subExpresion.size() == 2) {
-							condition = String.format("(count%1$s >= %2$s && count%1$s <= %3$s)", indexOfCount, subExpresion.getFirst().value(), subExpresion.getLast().value());
-						} else {
-							condition = String.format("count%s == %s", indexOfCount, subExpresion.getFirst().value());
-						}
-						return condition;
-					}).collect(Collectors.joining(" || ")) + ")) {\nthis.error();\n}\n}";
-					indexOfCount++;
-					return str;
+				case ATRLFGroupExpressionLexerTree group -> {
+					return "{\nint count%1$s = 0;\nwhile(%2$s) {\nthis.consume();\ncount%1$s++;\n}\nif (!(%3$s)) {\nthis.error();\n}\n}".formatted(indexOfCount, getCharacterExpressionTreeToString(group, isNot), getRangeIndex(unaryMultipleOperatorExpresionTree, indexOfCount++));
+				}
+				case ATRLFFunctionCalledLexerTree function -> {
+					return "{\nint count%1$s = 0;\nwhile(%2$s) {\nthis.consume();\ncount%1$s++;\n}\nif (!(%3$s)) {\nthis.error();\n}\n}".formatted(indexOfCount, getCharacterExpressionTreeToString(function, isNot), getRangeIndex(unaryMultipleOperatorExpresionTree, indexOfCount++));
 				}
 				default -> {
-					String str = "{\nint count" + (indexOfCount) + " = 0;\nwhile (this.has(" + this.expresion.onVisitor() + ")) {\nthis.consume();\ncount" + (indexOfCount) + "++;\n}\nif (!(" + unaryMultipleOperatorExpresionTree.multiExpresion.stream().map(subExpresion -> {
-						String condition;
-						if (subExpresion.size() == 2) {
-							condition = String.format("(count%1$s >= %2$s && count%1$s <= %3$s)", indexOfCount, subExpresion.getFirst().value(), subExpresion.getLast().value());
-						} else {
-							condition = String.format("count%s == %s", indexOfCount, subExpresion.getFirst().value());
-						}
-						return condition;
-					}).collect(Collectors.joining(" || ")) + ")) {\nthis.error();\n}\n}";
-					indexOfCount++;
-					return str;
+					return "???";
 				}
 			}
 		}
-		return "???";
+		return "????";
+	}
+
+	private String getRangeIndex(ATRLFUnaryMultipleOperatorExpresionTree multiple, int i) {
+		return multiple.multiExpresion.stream().map((indexRange) -> {
+			if (indexRange.size() == 1) {
+				return "%s == count%s".formatted(indexRange.getFirst().value(), i);
+			} else if (indexRange.size() == 2) {
+				return "(count%1$s >= %2$s && count%1$s <= %3$s)".formatted(i, indexRange.getFirst().value(), indexRange.getLast().value());
+			}
+			return "nope!";
+		}).collect(Collectors.joining(" || "));
+	}
+
+	private boolean getNot(ATRLFGroupExpressionLexerTree group) {
+		if (group.expresion instanceof ATRLFAlternativesStatementLexerTree alternatives && alternatives.expressionTrees.getFirst() instanceof ATRLFSequenceStatementLexerTree sequence && sequence.expressionTrees.getFirst() instanceof ATRLFUnaryExpressionLexerTree unary&& unary.operator instanceof ATRLFUnarySingleOperatorExpresionTree single) {
+			return single.operator.type() == NotSymbolOperatorToken;
+		}
+		return false;
 	}
 
 	@Override

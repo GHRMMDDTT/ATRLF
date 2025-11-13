@@ -98,7 +98,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 				returener = new ATRLFFunctionLexerTree.ATRLFFunctionSingleReturn(validate(EnumSet.of(CURRENT, NEXT), IdentifierToken));
 			} else if (validate(EnumSet.of(CURRENT, NEXT, SEEK), SwitchKeywordToken) != NOT_FOUND_TOKEN) {
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
-				validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
+				ATRLFToken named = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
 
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyLeftSymbolDelimiterSeparatorOperatorToken);
@@ -123,7 +123,8 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 				ATRLFToken returnType = validate(EnumSet.of(CURRENT, NEXT, CONSUME), IdentifierToken);
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), SemicolonSymbolDelimiterOperatorToken);
 				defaultReturn = new ATRLFFunctionLexerTree.ATRLFFunctionSingleReturn(returnType);
-				returener = new ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn(caseReturns, defaultReturn);
+
+				returener = new ATRLFFunctionLexerTree.ATRLFFunctionSwitchCaseReturn(named, caseReturns, defaultReturn);
 
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyRightSymbolDelimiterSeparatorOperatorToken);
 			} else {
@@ -276,13 +277,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 			validate(EnumSet.of(CURRENT, CONSUME, NEXT), ParenthesisRightSymbolDelimiterSeparatorOperatorToken);
 			return new ATRLFGroupExpressionLexerTree(expressionTree);
 		} else if (expresion.type() == SquareLeftSymbolDelimiterSeparatorOperatorToken) {
-			validate(EnumSet.of(CURRENT, NEXT));
-
-			ArrayList<ArrayList<ATRLFExpressionLexerTree>> expressionTree = this.onParserRangeCharacter(compilationUnitLexerTree);
-
 			validate(EnumSet.of(CURRENT, CONSUME, NEXT), SquareRightSymbolDelimiterSeparatorOperatorToken);
-
-			return new ATRLFRangeCharacterExpressionLexerTree(expressionTree);
 		} else if (expresion.type() == IdentifierToken) {
 			validate(EnumSet.of(CURRENT, NEXT));
 			validate(EnumSet.of(CURRENT, NEXT, CONSUME), ParenthesisLeftSymbolDelimiterSeparatorOperatorToken);
@@ -348,6 +343,13 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 
 	private ATRLFExpressionLexerTree onParserCharacter(ATRLFCompilationUnitLexerTree compilationUnitLexerTree) {
 		ATRLFToken character = validate(EnumSet.of(CURRENT, NEXT, CONSUME), CharacterLiteralToken);
+
+		if (validate(EnumSet.of(CURRENT, NEXT, SEEK), DotSymbolDelimiterOperatorToken) != NOT_FOUND_TOKEN) {
+			validate(EnumSet.of(CURRENT, NEXT, CONSUME), DotSymbolDelimiterOperatorToken);
+			ATRLFToken character2 = validate(EnumSet.of(CURRENT, NEXT, CONSUME), CharacterLiteralToken);
+			return new ATRLFRangeCharacterExpressionLexerTree(character, character2);
+		}
+
 		return new ATRLFCharacterExpressionLexerTree(character);
 	}
 

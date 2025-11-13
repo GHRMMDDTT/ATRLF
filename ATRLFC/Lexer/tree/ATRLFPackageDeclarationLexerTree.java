@@ -12,7 +12,7 @@ public final class ATRLFPackageDeclarationLexerTree extends ATRLFLexerTree {
 	}
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		StringBuilder sb = new StringBuilder();
 		for (ATRLFToken expressionTree : this.expressionTrees) {
 			sb.append(expressionTree.value()).append('.');

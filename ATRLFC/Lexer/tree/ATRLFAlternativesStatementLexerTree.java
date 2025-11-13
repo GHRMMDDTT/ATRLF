@@ -15,35 +15,16 @@ public final class ATRLFAlternativesStatementLexerTree extends ATRLFStatementLex
 	}
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		StringBuilder sb = new StringBuilder();
-		if (expressionTrees.size() == 1) {
-			sb.append(expressionTrees.getFirst().onVisitor());
+		if (this.expressionTrees.size() == 1) {
+			sb.append(this.expressionTrees.getFirst().onVisitor(isNot));
 		} else {
 			for (ATRLFExpressionLexerTree expressionTree : this.expressionTrees) {
 				AtomicBoolean isNewLine = new AtomicBoolean(false);
 				sb.append("if (").append(
-						getCharacterExpressionTree(expressionTree, false).stream().map(subExpresion -> {
-									String condition = "";
-
-									if (subExpresion.size() == 2) {
-										if (subExpresion.getFirst().type() == NotToken) condition = "!(";
-										condition += String.format("(this.peek() >= %s && this.peek() <= %s)", subExpresion.getFirst().value(), subExpresion.getLast().value());
-										if (subExpresion.getFirst().type() == NotToken) condition += ")";
-									} else {
-										if (subExpresion.getFirst().type() == AllToken) {
-											condition = "true";
-										} else {
-											if (subExpresion.getFirst().type() == NotToken) condition = "!";
-											condition += String.format("this.has(%s)", subExpresion.getFirst().value());
-											isNewLine.set(subExpresion.getFirst().value().equals("'\\n'"));
-										}
-									}
-
-									return condition;
-								})
-								.collect(Collectors.joining(" || "))
-				).append(") {\n").append(isNewLine.get() ? "this.line++;\nthis.column = this.position;\n" : "").append(expressionTree.onVisitor()).append("\n} else ");
+						getCharacterExpressionTreeToString(expressionTree, null)
+				).append(") {\n").append(isNewLine.get() ? "this.line++;\nthis.column = this.position;\n" : "").append(expressionTree.onVisitor(isNot)).append("\n} else ");
 			}
 			sb.append("{\nthis.error();\n}");
 		}

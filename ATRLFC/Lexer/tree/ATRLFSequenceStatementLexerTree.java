@@ -10,10 +10,10 @@ public final class ATRLFSequenceStatementLexerTree extends ATRLFStatementLexerTr
 	}
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		StringBuilder sb = new StringBuilder();
 		for (ATRLFExpressionLexerTree expressionTree : this.expressionTrees) {
-			sb.append(expressionTree.onVisitor()).append('\n');
+			sb.append(expressionTree.onVisitor(isNot)).append('\n');
 		}
 		sb.setLength(sb.length() - 1);
 		return sb.toString();

@@ -16,11 +16,11 @@ public final class ATRLFFunctionCalledLexerTree extends ATRLFExpressionLexerTree
 
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		StringBuilder sb = new StringBuilder();
 		String name = this.name.value();
 		name = this.name.value().equals("main") ? "getNextToken" : name;
-		if (compilationUnit.functions.get(this.name.value()).token != null || compilationUnit.functions.get(this.name.value()).onVisitor().contains("return") || name.equals("getNextToken")) {
+		if (compilationUnit.functions.get(this.name.value()).token != null || compilationUnit.functions.get(this.name.value()).onVisitor(isNot).contains("return") || name.equals("getNextToken")) {
 			sb.append("return ");
 		}
 		sb.append(name).append('(');

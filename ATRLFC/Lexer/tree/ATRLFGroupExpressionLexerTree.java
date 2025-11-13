@@ -8,8 +8,8 @@ public final class ATRLFGroupExpressionLexerTree extends ATRLFExpressionLexerTre
 	}
 
 	@Override
-	public String onVisitor() {
-		return expresion.onVisitor();
+	public String onVisitor(boolean isNot) {
+		return expresion.onVisitor(isNot);
 	}
 
 	@Override

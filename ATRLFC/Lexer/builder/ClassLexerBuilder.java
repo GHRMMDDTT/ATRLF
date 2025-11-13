@@ -31,7 +31,7 @@ public class ClassLexerBuilder {
 		String packager = this.name.substring(this.name.lastIndexOf('/') + 1);
 
 		String code;
-		code = "package " + (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor() : "") + packager + ".scanner;\n";
+		code = "package " + (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor(false) : "") + packager + ".scanner;\n";
 		code += """
 
 import java.io.File;
@@ -49,7 +49,7 @@ import java.nio.charset.StandardCharsets;
 		code += "public "  + name + "Scanner(String target) {\nthis.target = target.toCharArray();\n}\n\n";
 		code += "public "  + name + "Scanner(File target) {\nthis.target = this.readFile(target);\n}\n\n";
 		code += readFile$argument_File$Code + "\n";
-		code += this.tree.onVisitor() + "\n\n";
+		code += this.tree.onVisitor(false) + "\n\n";
 		code += peekCode + "\n";
 		code += seekCode$argument_int$Code + "\n";
 		code += has$argument_char$Code + "\n";
@@ -62,7 +62,7 @@ import java.nio.charset.StandardCharsets;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		code = "package "+ (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor() : "")  + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken,\nEndOfInputFileToken\n}\n}";
+		code = "package "+ (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor(false) : "")  + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + "\nBadToken,\nEndOfInputFileToken\n}\n}";
 		code = applyIndentation(code);
 		try {
 			Files.writeString(Path.of(ruteDir + "Token.java"), code);
@@ -144,7 +144,7 @@ this.error();
 	}
 
 	public static final String readFile$argument_File$Code = """
-private Token EOIF = new Token(\"\\0\", Token.TokenSyntax.EndOfInputFileToken, this.column + 1, this.line); 
+private final Token EOIF = new Token("\\0", Token.TokenSyntax.EndOfInputFileToken, this.column + 1, this.line);\s
 
 private char[] readFile(File file) {
 try (FileInputStream fis = new FileInputStream(file)) {

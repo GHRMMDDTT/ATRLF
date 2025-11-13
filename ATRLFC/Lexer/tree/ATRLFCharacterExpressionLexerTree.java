@@ -10,12 +10,12 @@ public final class ATRLFCharacterExpressionLexerTree extends ATRLFExpressionLexe
 	}
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		return this.character.value();
 	}
 
 	@Override
 	public String toString() {
-		return this.onVisitor();
+		return this.onVisitor(false);
 	}
 }

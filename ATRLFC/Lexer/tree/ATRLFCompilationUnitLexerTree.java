@@ -22,7 +22,7 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 	}
 
 	@Override
-	public String onVisitor() {
+	public String onVisitor(boolean isNot) {
 		this.parameters.forEach(parameters -> {
 			if (this.functions.containsKey(parameters.name.value())) {
 				System.err.printf(
@@ -36,7 +36,7 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 			this.functions.put(parameters.name.value(), parameters);
 		});
 
-		return this.parameters.stream().map(ATRLFFunctionLexerTree::onVisitor).collect(Collectors.joining("\n\n"));
+		return this.parameters.stream().map(atrlfFunctionLexerTree -> atrlfFunctionLexerTree.onVisitor(isNot)).collect(Collectors.joining("\n\n"));
 	}
 	
 	public static final class ATRLFFunctionParametersLexerTree {

@@ -2,7 +2,18 @@ package ATRLFC.tokenizer;
 
 import java.util.Objects;
 
-public record ATRLFToken(String value, ATRLFTokenType type, int line, int column) {
+public final class ATRLFToken {
+	private final String value;
+	private final ATRLFTokenType type;
+	private final int line;
+	private final int column;
+
+	public ATRLFToken(String value, ATRLFTokenType type, int line, int column) {
+		this.value = value;
+		this.type = type;
+		this.line = line;
+		this.column = column;
+	}
 
 	@Override
 	public String toString() {
@@ -15,9 +26,25 @@ public record ATRLFToken(String value, ATRLFTokenType type, int line, int column
 	}
 
 	@Override
+	public boolean equals(Object object) {
+		if (object == null || getClass() != object.getClass()) return false;
+		ATRLFToken token = (ATRLFToken) object;
+		return value.equals(token.value);
+	}
+
+	public String value() { return value; }
+
+	public ATRLFTokenType type() { return type; }
+
+	public int line() { return line; }
+
+	public int column() { return column; }
+
+	@Override
 	public int hashCode() {
 		return Objects.hash(value, type, line, column);
 	}
+
 
 	public enum ATRLFTokenType {
 		// Generic:
