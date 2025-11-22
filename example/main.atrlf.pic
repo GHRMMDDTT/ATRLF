@@ -1,0 +1,17 @@
+package example;
+
+function Parser:main(): = {
+	main=term()
+} => CompilationUnit(main);
+
+function Parser:term(): = {
+	first=ordinal() (operator=(<PlusOperatorSymbolToken> | <MinusOperatorSymbolToken>) last=ordinal())?+
+} => BinaryNumericLiteral(first, operator, last);
+
+function Parser:ordinal(): = {
+	first=numeric() (operator=(<StarOperatorSymbolToken> | <SlashOperatorSymbolToken>) last=numeric())?+
+} => BinaryNumericLiteral(first, operator, last);
+
+function Parser:numeric(): = {
+	number=<DigitLiteralToken>
+} => NumericLiteral(number);

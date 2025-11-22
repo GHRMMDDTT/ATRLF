@@ -31,7 +31,7 @@ public final class ATRLFCompilationUnitLexerTree extends ATRLFLexerTree {
 						this.functions.get(parameters.name.value()).name.line(),
 						this.functions.get(parameters.name.value()).name.column()
 				);
-				System.exit(-1);
+				System.exit(1);
 			}
 			this.functions.put(parameters.name.value(), parameters);
 		});

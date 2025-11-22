@@ -1,7 +1,6 @@
 package ATRLFC.Lexer.builder;
 
 import ATRLFC.Lexer.tree.ATRLFCompilationUnitLexerTree;
-import ATRLFC.Lexer.tree.ATRLFLexerTree;
 import ATRLFC.tokenizer.ATRLFToken;
 
 import java.io.File;
@@ -62,7 +61,7 @@ import java.nio.charset.StandardCharsets;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		code = "package "+ (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor(false) : "")  + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + "\nBadToken,\nEndOfInputFileToken\n}\n}";
+		code = "package "+ (this.tree.packageDeclarationLexerTree != null ? this.tree.packageDeclarationLexerTree.onVisitor(false) : "")  + packager + ".scanner;\n\n" + File$Token_class + ((ATRLFCompilationUnitLexerTree) tree).tokens.stream().map(ATRLFToken::value).collect(Collectors.joining(",\n")) + ",\nBadToken,\nEndOfInputFileToken\n}\n}";
 		code = applyIndentation(code);
 		try {
 			Files.writeString(Path.of(ruteDir + "Token.java"), code);
@@ -139,7 +138,7 @@ this.error();
 }
 """;
 
-	public static final String errorCode(String name) {
+	public static String errorCode(String name) {
 		return "private void error() {\nthrow new RuntimeException(\"[" + name + " Scanner] Invalid or Missing Character (Syntax Error): The character '\" + this.peek() + \"' is not valid at line \" + this.line + \", column \" + (this.position - this.column) + \" for this expression.\");\n}\n";
 	}
 

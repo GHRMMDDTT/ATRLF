@@ -1,4 +1,3 @@
 package ATRLFC.Lexer.tree;
 
-public abstract class ATRLFExpressionLexerTree extends ATRLFLexerTree {
-}
+public abstract class ATRLFExpressionLexerTree extends ATRLFLexerTree {}

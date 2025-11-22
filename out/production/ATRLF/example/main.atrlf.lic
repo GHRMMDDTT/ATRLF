@@ -1,0 +1,34 @@
+package example;
+
+function Lexer:main(): = {
+    whitespace() (number() | operator())
+};
+
+function Lexer:whitespace(): = {
+    (' ' | '\t' | '\r' | '\n')?+
+};
+
+function Lexer:number(): = {
+	<DigitLiteralToken : '1'..'9' '0'..'9'?+ (
+		suffixNumericInteger() |
+		'.' '0'..'9'?+ suffixNumericDecimal()?
+	) >
+};
+
+function Lexer:suffixNumericInteger(): = {
+	<ByteLiteralToken : 'b' | 'B' > |
+	<ShortLiteralToken : 's' | 'S' > |
+	<IntegerLiteralToken : 'i' | 'I' > |
+	<LongLiteralToken : 'l' | 'L' > |
+	suffixNumericDecimal()
+};
+
+function Lexer:suffixNumericDecimal(): = {
+	<NumberLiteralToken : 'n' | 'N'> |
+	<FloatLiteralToken : 'f' | 'F'> |
+	<DoubleLiteralToken : 'd' | 'D'>
+};
+
+function Lexer:operator(): = {
+	<PlusOperatorSymbolToken : '+'>
+};

@@ -129,7 +129,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 				validate(EnumSet.of(CURRENT, NEXT, CONSUME), CurlyRightSymbolDelimiterSeparatorOperatorToken);
 			} else {
 				System.err.println("IDK, LOL");
-				System.exit(-1);
+				System.exit(1);
 			}
 		}
 
@@ -432,7 +432,7 @@ public record ATRLFLexerParser(ATRLFScanner scanner) {
 		} else {
 			System.err.printf("[ATRLF %s] %s%n", error.text, message);
 		}
-		System.exit(-1);
+		System.exit(1);
 	}
 
 	private String buildError(ATRLFTokenType... types) {

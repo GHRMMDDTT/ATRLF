@@ -363,7 +363,7 @@ public class ATRLFScanner {
 			case '}' -> CurlyRightSymbolDelimiterSeparatorOperatorToken;
 			default -> {
 				System.err.println("[ATRLF Scanner] No Match (Syntax Error): Unexpected value of " + this.target[this.position]);
-				System.exit(-1);
+				System.exit(1);
 				yield null;
 			}
 		}, this.line, this.position - this.column);
